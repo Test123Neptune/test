@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Famous Tools - เพิ่มงานใหม่</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <link rel="stylesheet" href="sidebar.css" />
+  <style>
+    @keyframes spin   { to { transform:rotate(360deg); } }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+    .form-page { max-width:740px; margin:0 auto; }
+
+    .step-bar { display:flex; align-items:center; gap:0; margin-bottom:24px; padding:0 2px; }
+    .step { display:flex; align-items:center; gap:8px; flex:1; position:relative; }
+    .step-dot {
+      width:28px; height:28px; border-radius:50%; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+      font-size:11px; font-weight:700;
+      border:2px solid var(--accent-border-dim);
+      background:var(--input); color:var(--text-dim);
+      transition:all 0.3s; z-index:1;
+    }
+    .step.active .step-dot { background:var(--accent); border-color:var(--accent); color:#fff; box-shadow:0 0 0 4px var(--accent-border-dim); }
+    .step.done  .step-dot  { background:rgba(34,197,94,0.15); border-color:#22c55e; color:#4ade80; }
+    .step-label { font-size:11px; font-weight:600; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.5px; white-space:nowrap; }
+    .step.active .step-label { color:var(--accent-light); }
+    .step.done   .step-label { color:#4ade80; }
+    .step-line { flex:1; height:2px; background:var(--accent-border-dim); margin:0 8px; border-radius:2px; }
+    .step.done + .step-line { background:#22c55e; }
+    [data-theme="light"] .step.active .step-dot { box-shadow:0 0 0 4px rgba(13,148,136,0.12); }
+    [data-theme="light"] .step.done  .step-dot  { background:#dcfce7; color:#16a34a; border-color:#86efac; }
+    [data-theme="light"] .step.done  .step-label { color:#16a34a; }
+
+    .form-card {
+      background:var(--card);
+      border:1px solid var(--accent-border-dim);
+      border-top:3px solid var(--accent);
+      border-radius:14px; padding:24px 28px; margin-bottom:14px;
+      animation:fadeUp 0.4s ease both;
+    }
+    .form-card:nth-child(1) { animation-delay:0.05s; }
+    .form-card:nth-child(2) { animation-delay:0.1s;  border-top-color:#f87171; }
+    .form-card:nth-child(3) { animation-delay:0.15s; border-top-color:#fbbf24; }
+    [data-theme="light"] .form-card { box-shadow:0 2px 10px rgba(0,0,0,0.05); }
+
+    .form-card-title {
+      font-size:12px; font-weight:700; color:var(--text-secondary);
+      text-transform:uppercase; letter-spacing:1px;
+      margin-bottom:18px; display:flex; align-items:center; gap:8px;
+      padding-bottom:12px; border-bottom:1px solid var(--accent-border-dim);
+    }
+    .form-card-title i { font-size:16px; }
+    .card-1 .form-card-title i { color:var(--accent); }
+    .card-2 .form-card-title i { color:#f87171; }
+    .card-3 .form-card-title i { color:#fbbf24; }
+
+    .form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .form-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+
+    .form-field { margin-bottom:14px; }
+    .form-field:last-child { margin-bottom:0; }
+    .form-field label {
+      display:flex; align-items:center; gap:5px;
+      font-size:11px; font-weight:700; color:var(--text-secondary);
+      margin-bottom:7px; letter-spacing:0.4px; text-transform:uppercase;
+    }
+    .form-field label .req { color:#f87171; font-size:13px; line-height:1; }
+    .form-field label i { font-size:13px; color:var(--text-dim); }
+
+    .form-field input,
+    .form-field select,
+    .form-field textarea {
+      width:100%; padding:10px 14px;
+      background:var(--input); border:1px solid var(--accent-border-dim);
+      border-radius:9px; color:var(--text-primary); font-size:13px; outline:none;
+      transition:border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      font-family:inherit;
+    }
+    .form-field input:hover, .form-field select:hover { border-color:var(--accent-border); }
+    .form-field input:focus, .form-field select:focus, .form-field textarea:focus {
+      border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-border-dim); background:var(--card);
+    }
+    .form-field textarea { resize:vertical; min-height:90px; }
+    .form-field input::placeholder, .form-field textarea::placeholder { color:var(--text-dim); font-size:12px; }
+
+    .input-wrap { position:relative; }
+    .input-wrap i { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-dim); font-size:15px; pointer-events:none; }
+    .input-wrap input { padding-left:38px; }
+
+    select option[value="ด่วน"]        { color:#f87171; }
+    select option[value="ปกติ"]        { color:#fbbf24; }
+    select option[value="รอดำเนินการ"] { color:#60a5fa; }
+    select option[value="กำลังทำ"]     { color:#fbbf24; }
+    select option[value="สำเร็จ"]      { color:#4ade80; }
+    select option[value="ยกเลิก"]      { color:#f87171; }
+
+    .action-bar {
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px; margin-top:4px; padding:16px 20px;
+      background:var(--card); border:1px solid var(--accent-border-dim);
+      border-radius:12px; animation:fadeUp 0.4s 0.2s ease both;
+    }
+    [data-theme="light"] .action-bar { box-shadow:0 2px 10px rgba(0,0,0,0.05); }
+    .action-bar-right { display:flex; gap:10px; }
+
+    .btn-submit {
+      padding:11px 28px; background:linear-gradient(135deg,#059669,#22c55e);
+      border:none; border-radius:9px; color:#fff; font-size:13px; font-weight:700;
+      cursor:pointer; display:flex; align-items:center; gap:8px;
+      transition:opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow:0 3px 12px rgba(34,197,94,0.3);
+    }
+    .btn-submit:hover { opacity:0.9; transform:translateY(-1px); box-shadow:0 5px 18px rgba(34,197,94,0.4); }
+    .btn-submit:disabled { opacity:0.5; cursor:not-allowed; transform:none; box-shadow:none; }
+    .btn-submit .spin { width:15px; height:15px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; display:none; }
+    .btn-submit.loading i { display:none; }
+    .btn-submit.loading .spin { display:block; animation:spin 0.7s linear infinite; }
+
+    .btn-cancel {
+      padding:11px 18px; background:var(--input);
+      border:1px solid var(--accent-border-dim); border-radius:9px;
+      color:var(--text-secondary); font-size:13px;
+      cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.15s;
+    }
+    .btn-cancel:hover { background:var(--accent-border-dim); color:var(--text-primary); }
+
+    .btn-reset {
+      padding:11px 18px; background:transparent;
+      border:1px solid var(--accent-border-dim); border-radius:9px;
+      color:var(--text-dim); font-size:13px;
+      cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.15s;
+    }
+    .btn-reset:hover { color:var(--text-secondary); border-color:var(--accent-border); }
+
+    .success-box {
+      display:none; background:rgba(34,197,94,0.08);
+      border:1px solid rgba(34,197,94,0.25); border-left:4px solid #22c55e;
+      border-radius:10px; padding:14px 18px; margin-bottom:14px;
+      align-items:center; gap:12px; color:#4ade80; font-size:13px; font-weight:500;
+    }
+    .success-box.show { display:flex; }
+    .err-box {
+      display:none; background:rgba(239,68,68,0.08);
+      border:1px solid rgba(239,68,68,0.2); border-left:4px solid #f87171;
+      border-radius:10px; padding:12px 16px; margin-bottom:14px;
+      align-items:center; gap:8px; color:#f87171; font-size:13px;
+    }
+    .err-box.show { display:flex; }
+    [data-theme="light"] .success-box { background:#f0fdf4; border-color:#86efac; color:#16a34a; }
+    [data-theme="light"] .err-box     { background:#fff1f2; border-color:#fca5a5; color:#dc2626; }
+
+    .form-field input.invalid { border-color:#f87171; box-shadow:0 0 0 3px rgba(248,113,113,0.12); }
+
+    @media (max-width:640px) {
+      .form-grid-2, .form-grid-3 { grid-template-columns:1fr; }
+      .form-card { padding:18px 16px; }
+      .step-label { display:none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="icon"><i class="ti ti-shield-lock"></i></div>
+      <span class="logo-text">Famous Tools</span>
+    </div>
+    <div class="sidebar-menu">
+      <div class="menu-label-group">หลัก</div>
+      <div class="menu-item" data-tooltip="Dashboard" onclick="location.href='dashboard1.html'">
+        <i class="ti ti-layout-dashboard"></i><span class="menu-label">Dashboard</span>
+      </div>
+      <div class="menu-item" data-tooltip="จัดการงาน" onclick="location.href='manage.html'">
+        <i class="ti ti-list-check"></i><span class="menu-label">จัดการงาน</span>
+      </div>
+      <div class="menu-item active" data-tooltip="เพิ่มงานใหม่">
+        <i class="ti ti-plus"></i><span class="menu-label">เพิ่มงาน</span>
+      </div>
+      <div class="menu-item" data-tooltip="กระบวนการผลิต" onclick="location.href='production.html'">
+        <i class="ti ti-route"></i><span class="menu-label">กระบวนการผลิต</span>
+      </div>
+      <div class="menu-label-group">ผู้ดูแล</div>
+      <div class="menu-item admin-item" data-tooltip="จัดการ User" onclick="location.href='users.html'">
+        <i class="ti ti-users"></i><span class="menu-label">จัดการผู้ใช้งาน</span>
+      </div>
+
+      <div class="menu-item admin-item" data-tooltip="ประวัติ Login" onclick="location.href='logs.html'">
+        <i class="ti ti-activity"></i><span class="menu-label">ประวัติเข้าระบบ</span>
+      </div>
+      <div class="menu-item admin-item" data-tooltip="ประวัติขั้นตอน" onclick="location.href='history.html'">
+        <i class="ti ti-clipboard-list"></i><span class="menu-label">ประวัติขั้นตอน</span>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="menu-item" onclick="toggleSidebar()">
+        <i class="ti ti-chevrons-left" id="collapse-icon"></i>
+        <span class="menu-label footer-label">ซ่อนแถบเมนู</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main" id="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <i class="ti ti-plus" style="color:#22c55e"></i>
+        <div>
+          <h1>เพิ่มงานใหม่</h1>
+          <p>กรอกข้อมูลงานที่ต้องการเพิ่มเข้าระบบ</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <span id="role-badge" class="role-badge"></span>
+        <span class="username-text" id="nav-username"></span>
+        <div class="avatar"><i class="ti ti-user"></i></div>
+        <button id="theme-toggle" onclick="toggleTheme()"></button>
+        <button class="btn-logout" onclick="logout()"><i class="ti ti-logout"></i>ออกจากระบบ</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="form-page">
+
+        <div class="step-bar">
+          <div class="step active" id="step-1">
+            <div class="step-dot"><i class="ti ti-clipboard-text" style="font-size:13px"></i></div>
+            <span class="step-label">ข้อมูลหลัก</span>
+          </div>
+          <div class="step-line"></div>
+          <div class="step" id="step-2">
+            <div class="step-dot"><i class="ti ti-adjustments" style="font-size:13px"></i></div>
+            <span class="step-label">รายละเอียด</span>
+          </div>
+          <div class="step-line"></div>
+          <div class="step" id="step-3">
+            <div class="step-dot"><i class="ti ti-notes" style="font-size:13px"></i></div>
+            <span class="step-label">หมายเหตุ</span>
+          </div>
+        </div>
+
+        <div class="success-box" id="success-box">
+          <i class="ti ti-circle-check" style="font-size:20px;flex-shrink:0"></i>
+          <span>บันทึกข้อมูลสำเร็จ! <a href="dashboard1.html" style="color:inherit;margin-left:8px;text-decoration:underline;font-weight:700">ไปยังรายการงาน →</a></span>
+        </div>
+        <div class="err-box" id="err-box">
+          <i class="ti ti-alert-circle" style="flex-shrink:0"></i>
+          <span id="err-text">เกิดข้อผิดพลาด</span>
+        </div>
+
+        <div class="form-card card-1">
+          <div class="form-card-title"><i class="ti ti-clipboard-text"></i>ข้อมูลงานหลัก</div>
+          <div class="form-grid-2">
+            <div class="form-field">
+              <label><i class="ti ti-barcode"></i>รหัสสินค้า / เลขงาน <span class="req">*</span></label>
+              <div class="input-wrap">
+                <i class="ti ti-hash"></i>
+                <input type="text" id="f-ref" placeholder="เช่น WO-2024-001" autocomplete="off" />
+              </div>
+            </div>
+            <div class="form-field">
+              <label><i class="ti ti-pencil"></i>ชื่องาน</label>
+              <div class="input-wrap">
+                <i class="ti ti-file-text"></i>
+                <input type="text" id="f-title" placeholder="ระบุชื่องาน" autocomplete="off" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-card card-2">
+          <div class="form-card-title"><i class="ti ti-adjustments"></i>รายละเอียดงาน</div>
+          <div class="form-grid-3">
+            <div class="form-field">
+              <label><i class="ti ti-refresh"></i>สถานะ</label>
+              <select id="f-status">
+                <option value="รอดำเนินการ">⏳ รอดำเนินการ</option>
+                <option value="กำลังทำ">⚙️ กำลังทำ</option>
+                <option value="สำเร็จ">✅ สำเร็จ</option>
+                <option value="ยกเลิก">❌ ยกเลิก</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label><i class="ti ti-flag"></i>ความสำคัญ</label>
+              <select id="f-priority">
+                <option value="ด่วน">🔴 ด่วน</option>
+                <option value="ปกติ" selected>🟡 ปกติ</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label><i class="ti ti-stack"></i>จำนวนงาน</label>
+              <div class="input-wrap">
+                <i class="ti ti-123"></i>
+                <input type="number" id="f-qty" placeholder="1" min="0" value="1" style="padding-left:38px" />
+              </div>
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-field">
+              <label><i class="ti ti-calendar-plus"></i>วันที่เพิ่มงาน</label>
+              <input type="date" id="f-startdate" />
+            </div>
+            <div class="form-field">
+              <label><i class="ti ti-calendar-due"></i>วันที่กำหนดส่ง</label>
+              <input type="date" id="f-duedate" />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-card card-3">
+          <div class="form-card-title"><i class="ti ti-notes"></i>หมายเหตุ</div>
+          <div class="form-field">
+            <label><i class="ti ti-message-2"></i>Remark</label>
+            <textarea id="f-remark" placeholder="หมายเหตุหรือรายละเอียดเพิ่มเติม..." rows="4"></textarea>
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn-cancel" onclick="location.href='dashboard1.html'">
+            <i class="ti ti-arrow-left"></i>กลับ
+          </button>
+          <div class="action-bar-right">
+            <button class="btn-reset" onclick="resetForm()">
+              <i class="ti ti-rotate"></i>ล้างข้อมูล
+            </button>
+            <button class="btn-submit" id="btn-submit" onclick="saveWork()">
+              <i class="ti ti-device-floppy"></i>
+              <span class="spin"></span>
+              บันทึกข้อมูล
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="theme.js"></script>
+  <script>
+    authGuard('add');
+
+    const todayLocal = new Date();
+    const y = todayLocal.getFullYear();
+    const m = String(todayLocal.getMonth()+1).padStart(2,'0');
+    const d = String(todayLocal.getDate()).padStart(2,'0');
+    document.getElementById('f-startdate').value = `${y}-${m}-${d}`;
+
+    updateSteps();
+
+    function updateSteps() {
+      const title  = document.getElementById('f-title').value.trim();
+      const remark = document.getElementById('f-remark').value.trim();
+      document.getElementById('step-1').className = 'step ' + (title ? 'done' : 'active');
+      document.getElementById('step-2').className = 'step ' + (!title ? '' : 'done');
+      document.getElementById('step-3').className = 'step ' + (remark ? 'done' : (!title ? '' : 'active'));
+    }
+
+    document.querySelectorAll('.form-field input, .form-field select, .form-field textarea').forEach(el => {
+      el.addEventListener('input', updateSteps);
+      el.addEventListener('change', updateSteps);
+    });
+
+    function resetForm() {
+      ['f-ref','f-title','f-remark'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('f-qty').value      = '1';
+      document.getElementById('f-status').value   = 'รอดำเนินการ';
+      document.getElementById('f-priority').value = 'ปกติ';
+      document.getElementById('f-duedate').value  = '';
+      const t = new Date();
+      document.getElementById('f-startdate').value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+      document.getElementById('success-box').classList.remove('show');
+      document.getElementById('err-box').classList.remove('show');
+      document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
+      updateSteps();
+      document.getElementById('f-title').focus();
+    }
+
+    async function saveWork() {
+      const titleEl = document.getElementById('f-title');
+      const title   = titleEl.value.trim();
+      const refEl   = document.getElementById('f-ref');
+      const ref     = refEl.value.trim();
+      const errBox  = document.getElementById('err-box');
+      const errText = document.getElementById('err-text');
+      const sucBox  = document.getElementById('success-box');
+      const btn     = document.getElementById('btn-submit');
+
+      errBox.classList.remove('show');
+      sucBox.classList.remove('show');
+      titleEl.classList.remove('invalid');
+
+      if (!ref) {
+        errText.textContent = 'กรุณากรอกรหัสสินค้าก่อนบันทึก';
+        errBox.classList.add('show');
+        refEl.classList.add('invalid');
+        refEl.focus();
+        return;
+      }
+
+      btn.disabled = true;
+      btn.classList.add('loading');
+
+      try {
+        const res = await apiCall({
+          action:    'addData',
+          title,
+          ref:       document.getElementById('f-ref').value.trim(),
+          qty:       document.getElementById('f-qty').value,
+          status:    document.getElementById('f-status').value,
+          priority:  document.getElementById('f-priority').value,
+          startdate: document.getElementById('f-startdate').value,
+          duedate:   document.getElementById('f-duedate').value,
+          remark:    document.getElementById('f-remark').value.trim(),
+        });
+
+        if (res.success) {
+          sucBox.classList.add('show');
+          showToast('บันทึกข้อมูลสำเร็จ!', 'success');
+          setTimeout(() => {
+            ['f-ref','f-title','f-remark'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('f-qty').value      = '1';
+            document.getElementById('f-status').value   = 'รอดำเนินการ';
+            document.getElementById('f-priority').value = 'ปกติ';
+            document.getElementById('f-duedate').value  = '';
+            const t = new Date();
+            document.getElementById('f-startdate').value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+            updateSteps();
+            document.getElementById('f-ref').focus();
+          }, 1200);
+        } else {
+          errText.textContent = res.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่';
+          errBox.classList.add('show');
+        }
+      } catch(e) {
+        errText.textContent = 'ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่';
+        errBox.classList.add('show');
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('loading');
+      }
+    }
+
+    document.querySelectorAll('.form-field input').forEach((input, i, arr) => {
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const next = arr[i + 1];
+          if (next) next.focus(); else saveWork();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,21 +1,485 @@
 <!DOCTYPE html>
 <html lang="th">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Login</title>
-        <link rel="stylesheet" href="style.css">
-    </head>
-    <body>
-        <div class="login-container">
-            <div class="login-box">
-                <h2>🔐 เข้าสู่ระบบ</h2>
-                <div id="error-msg" class="error-msg hidden"></div>
-                <input type="text" id="username" placeholder="ชื่อผู้ใช้" />
-                <input type="password" id="password" placeholder="รหัสผ่าน" />
-                <button id="login-btn" onclick="loginHandler()">เข้าสู่ระบบ</button>
-            </div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Famous Tools - Login</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+
+    @keyframes fadein    { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes spin      { to { transform:rotate(360deg); } }
+    @keyframes pulse     { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+    @keyframes borderrun { 0% { background-position:0% 0%; } 100% { background-position:200% 0%; } }
+    @keyframes scanline  { 0% { top:-10%; } 100% { top:110%; } }
+    @keyframes float     { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-6px); } }
+    @keyframes ripple    { 0% { transform:scale(0);opacity:0.4; } 100% { transform:scale(3);opacity:0; } }
+    @keyframes gridMove  { 0% { transform:translateY(0); } 100% { transform:translateY(40px); } }
+    @keyframes glitch1   { 0%,95%,100% { clip-path:none;transform:none; } 96% { clip-path:polygon(0 20%,100% 20%,100% 30%,0 30%);transform:translateX(-4px); } 98% { clip-path:polygon(0 60%,100% 60%,100% 70%,0 70%);transform:translateX(4px); } }
+    @keyframes shake     { 0%,100% { transform:translateX(0); } 20%,60% { transform:translateX(-6px); } 40%,80% { transform:translateX(6px); } }
+    @keyframes successPop { 0% { transform:scale(0.5);opacity:0; } 70% { transform:scale(1.1); } 100% { transform:scale(1);opacity:1; } }
+    @keyframes particleUp { 0% { transform:translateY(0) scale(1);opacity:1; } 100% { transform:translateY(-80px) scale(0);opacity:0; } }
+
+    body {
+      min-height:100vh;
+      display:flex;align-items:center;justify-content:center;
+      background:#050d1a;overflow:hidden;
+    }
+
+    /* ── BACKGROUND ── */
+    .bg-grid {
+      position:fixed;inset:0;z-index:0;
+      background-image:
+        linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
+      background-size:40px 40px;
+      animation:gridMove 8s linear infinite;
+    }
+    .bg-glow {
+      position:fixed;inset:0;z-index:0;
+      background:
+        radial-gradient(ellipse 600px 400px at 30% 50%, rgba(37,99,235,0.06) 0%, transparent 70%),
+        radial-gradient(ellipse 400px 300px at 70% 60%, rgba(16,185,129,0.04) 0%, transparent 70%);
+    }
+    canvas { position:fixed;inset:0;z-index:1; }
+
+    .scanline {
+      position:fixed;left:0;right:0;height:80px;
+      background:linear-gradient(180deg,transparent,rgba(96,165,250,0.03),transparent);
+      animation:scanline 9s linear infinite;z-index:2;pointer-events:none;
+    }
+
+    /* ── CORNERS ── */
+    .corner { position:fixed;width:28px;height:28px;z-index:3; }
+    .corner.tl { top:20px;left:20px;border-top:2px solid rgba(96,165,250,0.5);border-left:2px solid rgba(96,165,250,0.5); }
+    .corner.tr { top:20px;right:20px;border-top:2px solid rgba(96,165,250,0.5);border-right:2px solid rgba(96,165,250,0.5); }
+    .corner.bl { bottom:20px;left:20px;border-bottom:2px solid rgba(96,165,250,0.5);border-left:2px solid rgba(96,165,250,0.5); }
+    .corner.br { bottom:20px;right:20px;border-bottom:2px solid rgba(96,165,250,0.5);border-right:2px solid rgba(96,165,250,0.5); }
+
+    /* HUD labels */
+    .hud-label {
+      position:fixed;font-size:9px;color:rgba(96,165,250,0.35);letter-spacing:2px;text-transform:uppercase;z-index:3;
+    }
+    .hud-tl { top:28px;left:56px; }
+    .hud-br { bottom:28px;right:56px; }
+
+    /* ── WRAP ── */
+    .wrap {
+      position:relative;z-index:10;
+      display:flex;align-items:center;justify-content:center;
+      min-height:100vh;width:100vw;
+    }
+
+    /* ── CARD ── */
+    .card {
+      position:relative;
+      background:rgba(10,18,38,0.92);
+      border:1px solid rgba(96,165,250,0.2);
+      border-radius:20px;
+      padding:48px 44px 40px;
+      width:420px;
+      animation:fadein 0.7s cubic-bezier(0.22,1,0.36,1) both;
+      backdrop-filter:blur(20px);
+      box-shadow:0 30px 80px rgba(0,0,0,0.6),0 0 0 1px rgba(96,165,250,0.05) inset;
+    }
+    .card::before {
+      content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
+      width:160px;height:2px;
+      background:linear-gradient(90deg,transparent,#60a5fa,transparent);
+      background-size:200% 100%;
+      animation:borderrun 2.5s linear infinite;border-radius:2px;
+    }
+    .card::after {
+      content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+      width:80px;height:1px;
+      background:linear-gradient(90deg,transparent,rgba(96,165,250,0.3),transparent);
+    }
+
+    /* ── LOGO ── */
+    .logo-wrap {
+      display:flex;align-items:center;gap:16px;justify-content:center;margin-bottom:18px;
+    }
+    .logo-icon {
+      width:56px;height:56px;
+      background:rgba(37,99,235,0.15);
+      border:1.5px solid rgba(96,165,250,0.4);
+      border-radius:14px;
+      display:flex;align-items:center;justify-content:center;
+      color:#93c5fd;font-size:26px;
+      position:relative;
+      animation:float 3s ease infinite;
+      transition:all 0.3s;
+    }
+    .logo-icon:hover { transform:scale(1.05) !important;border-color:#60a5fa; }
+    .logo-icon::after {
+      content:'';position:absolute;inset:-6px;border-radius:18px;
+      border:1px solid rgba(96,165,250,0.15);
+      animation:pulse 2.5s ease infinite;
+    }
+    .logo-text {
+      font-size:22px;font-weight:600;color:#e0eeff;
+      letter-spacing:5px;text-transform:uppercase;
+      animation:glitch1 8s ease infinite;
+    }
+
+    .divider { height:1px;background:linear-gradient(90deg,transparent,rgba(96,165,250,0.4),transparent);margin:18px 0 12px; }
+    .subtitle {
+      font-size:11px;color:#3b82f6;text-align:center;
+      letter-spacing:5px;text-transform:uppercase;margin-bottom:32px;
+    }
+
+    /* ── FIELDS ── */
+    .field { margin-bottom:20px; }
+    .field label {
+      display:block;font-size:12px;font-weight:500;color:#7dd3fc;
+      margin-bottom:8px;letter-spacing:1px;text-transform:uppercase;
+    }
+    .input-wrap { position:relative;display:flex;align-items:center; }
+    .input-wrap .ico { position:absolute;left:14px;color:#3b82f6;font-size:18px;transition:color 0.2s; }
+    .input-wrap input {
+      width:100%;padding:14px 14px 14px 46px;
+      background:rgba(5,13,30,0.8);
+      border:1px solid rgba(96,165,250,0.15);
+      border-radius:10px;color:#e0eeff;font-size:14px;outline:none;
+      transition:border-color 0.2s,box-shadow 0.2s,background 0.2s;
+    }
+    .input-wrap input:focus {
+      border-color:#60a5fa;
+      box-shadow:0 0 0 3px rgba(96,165,250,0.1),0 0 20px rgba(96,165,250,0.05);
+      background:rgba(10,20,45,0.9);
+    }
+    .input-wrap input:focus + .ico,
+    .input-wrap:has(input:focus) .ico { color:#60a5fa; }
+    .input-wrap input::placeholder { color:#1e3a5f;font-size:13px; }
+
+    /* eye toggle */
+    .eye-btn {
+      position:absolute;right:12px;color:#1e3a5f;font-size:16px;
+      background:none;border:none;cursor:pointer;padding:4px;
+      transition:color 0.2s;
+    }
+    .eye-btn:hover { color:#60a5fa; }
+
+    /* ── BUTTON ── */
+    .btn {
+      width:100%;margin-top:8px;padding:15px;
+      background:linear-gradient(135deg,#1d4ed8,#2563eb,#0ea5e9);
+      border:none;border-radius:10px;
+      color:#fff;font-size:14px;font-weight:600;letter-spacing:2px;text-transform:uppercase;
+      cursor:pointer;transition:all 0.25s;
+      display:flex;align-items:center;justify-content:center;gap:10px;
+      position:relative;overflow:hidden;
+    }
+    .btn:hover:not(.loading) {
+      transform:translateY(-2px);
+      box-shadow:0 8px 30px rgba(37,99,235,0.4);
+      background:linear-gradient(135deg,#2563eb,#3b82f6,#0ea5e9);
+    }
+    .btn:active:not(.loading) { transform:translateY(0); }
+    .btn::before {
+      content:'';position:absolute;inset:0;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent);
+      transform:translateX(-100%);transition:transform 0.5s;
+    }
+    .btn:hover::before { transform:translateX(100%); }
+    .btn::after {
+      content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent);
+      background-size:200% 100%;animation:borderrun 2s linear infinite;
+    }
+    .btn-spin {
+      display:none;width:18px;height:18px;
+      border:2px solid rgba(255,255,255,0.3);
+      border-top-color:#fff;border-radius:50%;
+    }
+    .btn.loading .btn-text { display:none; }
+    .btn.loading .btn-icon { display:none; }
+    .btn.loading .btn-spin { display:block;animation:spin 0.7s linear infinite; }
+    .btn.loading { opacity:0.8;cursor:default; }
+
+    /* shake on error */
+    .card.shake { animation:shake 0.4s ease; }
+
+    /* ── ERROR ── */
+    .err {
+      background:rgba(127,29,29,0.25);border:1px solid rgba(252,165,165,0.25);
+      border-radius:8px;color:#fca5a5;font-size:12px;
+      padding:10px 14px;margin-bottom:18px;
+      display:none;align-items:center;gap:8px;
+      animation:fadein 0.3s ease;
+    }
+
+    /* ── SUCCESS OVERLAY ── */
+    .success-overlay {
+      display:none;position:absolute;inset:0;
+      background:rgba(10,18,38,0.97);
+      border-radius:20px;
+      align-items:center;justify-content:center;
+      flex-direction:column;gap:16px;z-index:10;
+    }
+    .success-overlay.show { display:flex;animation:fadein 0.3s ease; }
+    .success-icon {
+      width:72px;height:72px;border-radius:50%;
+      background:rgba(34,197,94,0.15);
+      border:2px solid #22c55e;
+      display:flex;align-items:center;justify-content:center;
+      font-size:32px;color:#4ade80;
+      animation:successPop 0.5s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .success-text { color:#4ade80;font-size:14px;letter-spacing:3px;text-transform:uppercase; }
+    .success-sub  { color:#334155;font-size:12px; }
+
+    /* ── FOOTER ── */
+    .footer {
+      margin-top:28px;display:flex;align-items:center;justify-content:center;
+      gap:8px;font-size:11px;color:#1e3a5f;
+    }
+    .status-dot { width:6px;height:6px;border-radius:50%;background:#22c55e;animation:pulse 2s ease infinite; }
+
+    /* ── PARTICLES (JS-generated) ── */
+    .particle {
+      position:absolute;width:4px;height:4px;border-radius:50%;
+      background:#60a5fa;pointer-events:none;
+      animation:particleUp 1s ease forwards;
+    }
+
+    /* ── CAPS INDICATOR ── */
+    .caps-warn {
+      font-size:11px;color:#fbbf24;margin-top:5px;
+      display:none;align-items:center;gap:4px;
+    }
+    .caps-warn.show { display:flex; }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+  <canvas id="c"></canvas>
+  <div class="scanline"></div>
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+  <div class="hud-label hud-tl">SYS // SECURE ACCESS</div>
+  <div class="hud-label hud-br">FAMOUS TOOLS v1.0.1</div>
+
+  <div class="wrap">
+    <div class="card" id="card">
+
+      <!-- Success Overlay -->
+      <div class="success-overlay" id="success-overlay">
+        <div class="success-icon"><i class="ti ti-check"></i></div>
+        <div class="success-text">เข้าสู่ระบบสำเร็จ</div>
+        <div class="success-sub" id="success-name"></div>
+      </div>
+
+      <div class="logo-wrap">
+        <div class="logo-icon"><i class="ti ti-shield-lock"></i></div>
+        <span class="logo-text">Famous</span>
+      </div>
+
+      <div class="divider"></div>
+      <div class="subtitle">เข้าสู่ระบบ</div>
+
+      <div class="err" id="err">
+        <i class="ti ti-alert-circle"></i>
+        <span id="err-text">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</span>
+      </div>
+
+      <form autocomplete="off" onsubmit="return false;">
+      <div class="field">
+        <label>Username</label>
+        <div class="input-wrap">
+          <i class="ti ti-user ico"></i>
+          <input type="text" id="username" placeholder="กรอกชื่อผู้ใช้งาน" autocomplete="off" name="username-x" autocomplete="off" />
         </div>
-        <script type="module" src="dist/auth.js"></script>
-    </body>
+      </div>
+
+      <div class="field">
+        <label>Password</label>
+        <div class="input-wrap">
+          <i class="ti ti-lock ico"></i>
+          <input type="password" id="password" placeholder="กรอกรหัสผ่าน" autocomplete="new-password" name="password-x" autocomplete="new-password" />
+          <button class="eye-btn" id="eye-btn" type="button" onclick="togglePw()" title="แสดง/ซ่อนรหัสผ่าน">
+            <i class="ti ti-eye" id="eye-icon"></i>
+          </button>
+        </div>
+        <div class="caps-warn" id="caps-warn">
+          <i class="ti ti-lock-exclamation"></i> Caps Lock เปิดอยู่
+        </div>
+      </div>
+      </form>
+
+      <button class="btn" id="btn" onclick="loginHandler()">
+        <i class="ti ti-login btn-icon"></i>
+        <span class="btn-text">เข้าสู่ระบบ</span>
+        <span class="btn-spin" id="spin"></span>
+      </button>
+
+      <div class="footer">
+        <div class="status-dot"></div>
+        เชื่อมต่อปลอดภัย &nbsp;·&nbsp; v1.0.1
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── CANVAS ANIMATION ──────────────────────────────────────────────────────
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    resize();
+    window.addEventListener('resize', resize);
+    const dots = Array.from({ length: 70 }, () => ({
+      x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
+      r: Math.random() * 1.5 + 0.5
+    }));
+    function drawCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      dots.forEach(d => {
+        d.x += d.vx; d.y += d.vy;
+        if (d.x < 0) d.x = canvas.width;
+        if (d.x > canvas.width) d.x = 0;
+        if (d.y < 0) d.y = canvas.height;
+        if (d.y > canvas.height) d.y = 0;
+        ctx.beginPath();
+        ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(96,165,250,0.6)';
+        ctx.fill();
+      });
+      dots.forEach((a, i) => {
+        dots.slice(i + 1).forEach(b => {
+          const dx = a.x - b.x, dy = a.y - b.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 130) {
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.strokeStyle = `rgba(96,165,250,${0.12 * (1 - dist / 130)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        });
+      });
+      requestAnimationFrame(drawCanvas);
+    }
+    drawCanvas();
+
+    // ── CAPS LOCK DETECT ──────────────────────────────────────────────────────
+    document.getElementById('password').addEventListener('keyup', e => {
+      const caps = e.getModifierState && e.getModifierState('CapsLock');
+      document.getElementById('caps-warn').classList.toggle('show', caps);
+    });
+
+    // ── PASSWORD TOGGLE ───────────────────────────────────────────────────────
+    function togglePw() {
+      const pw = document.getElementById('password');
+      const icon = document.getElementById('eye-icon');
+      if (pw.type === 'password') {
+        pw.type = 'text';
+        icon.className = 'ti ti-eye-off';
+      } else {
+        pw.type = 'password';
+        icon.className = 'ti ti-eye';
+      }
+    }
+
+    // ── PARTICLES ─────────────────────────────────────────────────────────────
+    function spawnParticles(x, y) {
+      for (let i = 0; i < 8; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = (x + (Math.random() - 0.5) * 60) + 'px';
+        p.style.top  = (y + (Math.random() - 0.5) * 20) + 'px';
+        p.style.animationDelay = (Math.random() * 0.3) + 's';
+        document.getElementById('card').appendChild(p);
+        setTimeout(() => p.remove(), 1200);
+      }
+    }
+
+    // ── API CALL ──────────────────────────────────────────────────────────────
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzZtJWrIvdbfzodkM8RZlxoUO8-8J9AHKg0TlZrQw_B4-aX75qt_6vSAQA5o2SfLU5w/exec';
+
+    async function loginHandler() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const btn = document.getElementById('btn');
+      const errEl = document.getElementById('err');
+      const errText = document.getElementById('err-text');
+      const card = document.getElementById('card');
+
+      if (!username || !password) {
+        errText.textContent = 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน';
+        errEl.style.display = 'flex';
+        card.classList.add('shake');
+        setTimeout(() => card.classList.remove('shake'), 500);
+        return;
+      }
+
+      btn.classList.add('loading');
+      errEl.style.display = 'none';
+
+      const callbackName = 'loginCb_' + Date.now();
+      const script = document.createElement('script');
+
+      const timeout = setTimeout(() => {
+        btn.classList.remove('loading');
+        errText.textContent = 'ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่';
+        errEl.style.display = 'flex';
+        card.classList.add('shake');
+        setTimeout(() => card.classList.remove('shake'), 500);
+        delete window[callbackName];
+        try { document.head.removeChild(script); } catch(e) {}
+      }, 12000);
+
+      window[callbackName] = function(data) {
+        clearTimeout(timeout);
+        try { document.head.removeChild(script); } catch(e) {}
+        delete window[callbackName];
+        btn.classList.remove('loading');
+
+        if (data.success) {
+          localStorage.setItem('token',       data.token);
+          localStorage.setItem('username',    data.username);
+          localStorage.setItem('role',        data.role);
+          localStorage.setItem('permissions', data.permissions || 'view');
+          localStorage.setItem('displayName', data.displayName || data.username);
+
+          // Success animation
+          document.getElementById('success-name').textContent =
+            'ยินดีต้อนรับ ' + (data.displayName || data.username);
+          document.getElementById('success-overlay').classList.add('show');
+
+          const btnEl = document.getElementById('btn');
+          spawnParticles(btnEl.getBoundingClientRect().left, btnEl.getBoundingClientRect().top);
+
+          setTimeout(() => { window.location.href = 'dashboard1.html'; }, 1500);
+        } else {
+          errText.textContent = data.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+          errEl.style.display = 'flex';
+          card.classList.add('shake');
+          setTimeout(() => card.classList.remove('shake'), 500);
+        }
+      };
+
+      script.onerror = function() {
+        clearTimeout(timeout);
+        btn.classList.remove('loading');
+        errText.textContent = 'เกิดข้อผิดพลาด กรุณาลองใหม่';
+        errEl.style.display = 'flex';
+      };
+
+      script.src = `${API_URL}?action=login&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&callback=${callbackName}`;
+      document.head.appendChild(script);
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Enter') loginHandler(); });
+
+    if (localStorage.getItem('token')) {
+      window.location.href = 'dashboard1.html';
+    }
+  </script>
+</body>
 </html>

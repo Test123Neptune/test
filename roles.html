@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Famous Tools - จัดการ Role</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <link rel="stylesheet" href="sidebar.css" />
+  <style>
+    .page-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+    .card { background:var(--card); border:1px solid var(--accent-border-dim); border-radius:var(--border-radius); overflow:hidden; }
+    .card-header { padding:14px 16px; border-bottom:1px solid var(--accent-border-dim); display:flex; align-items:center; justify-content:space-between; }
+    .card-title  { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:500; color:var(--text-primary); }
+    .card-body   { padding:16px; }
+
+    .role-list   { display:flex; flex-direction:column; gap:8px; }
+    .role-item {
+      background:var(--input); border:1px solid var(--accent-border-dim);
+      border-radius:8px; padding:12px 14px; cursor:pointer;
+      transition:border-color 0.15s, background 0.15s;
+    }
+    .role-item:hover    { border-color:var(--accent-border); background:var(--menu-hover); }
+    .role-item.selected { border-color:var(--accent); background:var(--menu-active); }
+    .role-item-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .role-name { font-size:14px; font-weight:500; color:var(--text-primary); }
+
+    .perm-tags  { display:flex; flex-wrap:wrap; gap:4px; }
+    .perm-tag   { padding:2px 8px; border-radius:20px; font-size:11px; }
+    .perm-view        { background:rgba(96,165,250,0.12); color:#60a5fa; border:1px solid rgba(96,165,250,0.2); }
+    .perm-add         { background:rgba(34,197,94,0.12);  color:#4ade80; border:1px solid rgba(34,197,94,0.2); }
+    .perm-edit        { background:rgba(234,179,8,0.12);  color:#fbbf24; border:1px solid rgba(234,179,8,0.2); }
+    .perm-delete      { background:rgba(239,68,68,0.12);  color:#f87171; border:1px solid rgba(239,68,68,0.2); }
+    .perm-manage_user { background:rgba(168,85,247,0.12); color:#c084fc; border:1px solid rgba(168,85,247,0.2); }
+    .perm-export      { background:rgba(20,184,166,0.12); color:#2dd4bf; border:1px solid rgba(20,184,166,0.2); }
+    .perm-all         { background:rgba(239,68,68,0.15);  color:#f87171; border:1px solid rgba(239,68,68,0.2); }
+
+    .form-field { margin-bottom:14px; }
+    .form-field label { display:block; font-size:12px; font-weight:500; color:var(--text-secondary); margin-bottom:7px; }
+    .form-field input { width:100%; padding:9px 12px; background:var(--input); border:1px solid var(--accent-border-dim); border-radius:8px; color:var(--text-primary); font-size:13px; outline:none; transition:border-color 0.2s; }
+    .form-field input:focus { border-color:var(--accent); }
+
+    .perm-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .perm-check {
+      display:flex; align-items:flex-start; gap:10px;
+      padding:10px 12px; background:var(--input);
+      border:1px solid var(--accent-border-dim); border-radius:8px;
+      cursor:pointer; transition:border-color 0.15s, background 0.15s;
+    }
+    .perm-check:hover:not(.disabled-check) { border-color:var(--accent-border); background:var(--menu-hover); }
+    .perm-check input[type=checkbox] { width:16px; height:16px; accent-color:var(--accent); cursor:pointer; margin-top:1px; flex-shrink:0; }
+    .perm-check-label { font-size:13px; color:var(--text-secondary); }
+    .perm-check-desc  { font-size:11px; color:var(--text-dim); margin-top:2px; }
+
+    .form-title { font-size:14px; font-weight:500; color:var(--text-primary); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+    .form-title i { color:var(--accent); }
+
+    .msg-box { padding:10px 14px; border-radius:8px; font-size:12px; margin-bottom:14px; display:none; align-items:center; gap:8px; }
+    .msg-err { background:rgba(127,29,29,0.3); border:1px solid rgba(252,165,165,0.3); color:#fca5a5; }
+    .msg-ok  { background:rgba(20,83,45,0.3);  border:1px solid rgba(134,239,172,0.3); color:#86efac; }
+
+    .form-placeholder {
+      text-align:center; padding:50px 20px; color:var(--text-dim); font-size:13px;
+    }
+    .form-placeholder i { font-size:32px; display:block; margin-bottom:10px; color:var(--text-dim); opacity:0.5; }
+
+    /* Light mode card */
+    [data-theme="light"] .card  { background:#fff; border-color:#e5e7eb; }
+    [data-theme="light"] .role-item { background:#f9fafb; border-color:#e5e7eb; }
+    [data-theme="light"] .role-item:hover { background:#f0fdfa; border-color:#0d9488; }
+    [data-theme="light"] .role-item.selected { background:#f0fdfa; border-color:#0d9488; }
+    [data-theme="light"] .perm-check { background:#f9fafb; border-color:#e5e7eb; }
+    [data-theme="light"] .perm-check:hover { background:#f0fdfa; border-color:#0d9488; }
+    [data-theme="light"] .form-field input { background:#f9fafb; border-color:#e5e7eb; color:#111827; }
+    [data-theme="light"] .role-name { color:#111827; }
+    [data-theme="light"] .perm-check-label { color:#374151; }
+
+    @media (max-width:900px) { .page-grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="icon"><i class="ti ti-shield-lock"></i></div>
+      <span class="logo-text">Famous Tools</span>
+    </div>
+        <div class="sidebar-menu">
+      <div class="menu-label-group">หลัก</div>
+      <div class="menu-item" data-tooltip="Dashboard" onclick="location.href='dashboard1.html'">
+        <i class="ti ti-layout-dashboard"></i><span class="menu-label">Dashboard</span>
+      </div>
+      <div class="menu-item" data-tooltip="จัดการงาน" onclick="location.href='dashboard1.html'">
+        <i class="ti ti-list"></i><span class="menu-label">จัดการงาน</span>
+      </div>
+      <div class="menu-item" data-tooltip="เพิ่มงานใหม่" onclick="location.href='addwork.html'">
+        <i class="ti ti-plus"></i><span class="menu-label">เพิ่มงาน</span>
+      </div>
+      <div class="menu-label-group">ผู้ดูแล</div>
+      <div class="menu-item admin-item " data-tooltip="จัดการ User" onclick="location.href='users.html'">
+        <i class="ti ti-users"></i><span class="menu-label">จัดการผู้ใช้งาน</span>
+      </div>
+      <div class="menu-item admin-item active" data-tooltip="จัดการ Role" onclick="location.href='roles.html'">
+        <i class="ti ti-shield-check"></i><span class="menu-label">จัดการ Role</span>
+      </div>
+      <div class="menu-item admin-item " data-tooltip="ประวัติ Login" onclick="location.href='logs.html'">
+        <i class="ti ti-activity"></i><span class="menu-label">ประวัติเข้าระบบ</span>
+      </div>
+    </div>
+      <div class="sidebar-footer">
+      <div class="menu-item" onclick="toggleSidebar()">
+        <i class="ti ti-chevrons-left" id="collapse-icon"></i>
+        <span class="menu-label footer-label">ซ่อนแถบเมนู</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main" id="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <i class="ti ti-shield-check" style="color:#a78bfa"></i>
+        <div>
+          <h1>จัดการ Role & สิทธิ์</h1>
+          <p>สร้างและกำหนดสิทธิ์การใช้งานสำหรับแต่ละ Role</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <span id="role-badge" class="role-badge"></span>
+        <span class="username-text" id="nav-username"></span>
+        <div class="avatar"><i class="ti ti-user"></i></div>
+        <button id="theme-toggle" onclick="toggleTheme()"></button>
+        <button class="btn-logout" onclick="logout()"><i class="ti ti-logout"></i>ออกจากระบบ</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="page-grid">
+
+        <!-- Role List -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="ti ti-list"></i>Role ทั้งหมด
+              <span class="badge-count" id="role-count">0</span>
+            </div>
+            <button class="btn-f btn-green" onclick="newRole()">
+              <i class="ti ti-plus"></i>Role ใหม่
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="role-list" id="role-list">
+              <div class="empty">กำลังโหลด...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Permission Form -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="ti ti-settings"></i>กำหนดสิทธิ์</div>
+          </div>
+          <div class="card-body">
+            <div class="form-placeholder" id="form-placeholder">
+              <i class="ti ti-arrow-left"></i>
+              เลือก Role ที่ต้องการแก้ไข<br>หรือสร้าง Role ใหม่
+            </div>
+
+            <div id="role-form" style="display:none">
+              <div class="form-title" id="form-title"><i class="ti ti-plus"></i>สร้าง Role ใหม่</div>
+
+              <div class="msg-box msg-err" id="msg-err"><i class="ti ti-alert-circle"></i><span id="msg-err-text"></span></div>
+              <div class="msg-box msg-ok"  id="msg-ok"><i class="ti ti-circle-check"></i><span id="msg-ok-text"></span></div>
+
+              <div class="form-field">
+                <label>ชื่อ Role</label>
+                <input type="text" id="f-rolename" placeholder="เช่น supervisor, qa_team" />
+                <div class="locked-note" id="locked-note" style="display:none">
+                  <i class="ti ti-lock"></i> Role นี้ไม่สามารถเปลี่ยนชื่อได้
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label>สิทธิ์การใช้งาน</label>
+                <div class="perm-grid">
+                  <label class="perm-check">
+                    <input type="checkbox" id="p-view" value="view" />
+                    <div>
+                      <div class="perm-check-label">👁 ดูข้อมูล</div>
+                      <div class="perm-check-desc">ดูรายการงานได้</div>
+                    </div>
+                  </label>
+                  <label class="perm-check">
+                    <input type="checkbox" id="p-add" value="add" />
+                    <div>
+                      <div class="perm-check-label">➕ เพิ่มงาน</div>
+                      <div class="perm-check-desc">เพิ่มรายการงานใหม่</div>
+                    </div>
+                  </label>
+                  <label class="perm-check">
+                    <input type="checkbox" id="p-edit" value="edit" />
+                    <div>
+                      <div class="perm-check-label">✏️ แก้ไขงาน</div>
+                      <div class="perm-check-desc">แก้ไขรายการที่มีอยู่</div>
+                    </div>
+                  </label>
+                  <label class="perm-check">
+                    <input type="checkbox" id="p-delete" value="delete" />
+                    <div>
+                      <div class="perm-check-label">🗑 ลบงาน</div>
+                      <div class="perm-check-desc">ลบรายการออกจากระบบ</div>
+                    </div>
+                  </label>
+                  <label class="perm-check">
+                    <input type="checkbox" id="p-manage_user" value="manage_user" />
+                    <div>
+                      <div class="perm-check-label">👥 จัดการ User</div>
+                      <div class="perm-check-desc">เพิ่ม/ลบ/แก้ไข User & Role</div>
+                    </div>
+                  </label>
+                  <label class="perm-check">
+                    <input type="checkbox" id="p-export" value="export" />
+                    <div>
+                      <div class="perm-check-label">📤 Export</div>
+                      <div class="perm-check-desc">ดาวน์โหลดข้อมูล CSV</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div style="display:flex;gap:8px;margin-top:16px">
+                <button class="btn-f btn-gray" onclick="cancelForm()"><i class="ti ti-x"></i>ยกเลิก</button>
+                <button class="btn-f btn-blue" onclick="saveRole()"><i class="ti ti-check"></i>บันทึก</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="theme.js"></script>
+  <script>
+    authGuard('manage_user');
+
+    const ALL_PERMS = ['view','add','edit','delete','manage_user','export'];
+    const PERM_LABEL = { view:'ดูข้อมูล', add:'เพิ่มงาน', edit:'แก้ไขงาน', delete:'ลบงาน', manage_user:'จัดการ User', export:'Export' };
+    let allRoles = [], editMode = false, currentRole = '';
+
+    async function loadRoles() {
+      document.getElementById('role-list').innerHTML = '<div class="empty">กำลังโหลด...</div>';
+      try {
+        const res = await apiCall({ action:'getRoles' });
+        if (res.success) { allRoles = res.data || []; renderRoles(); }
+      } catch(e) {
+        document.getElementById('role-list').innerHTML = '<div class="empty" style="color:#f87171">โหลดไม่สำเร็จ</div>';
+      }
+    }
+
+    function renderRoles() {
+      document.getElementById('role-count').textContent = allRoles.length;
+      if (!allRoles.length) {
+        document.getElementById('role-list').innerHTML = '<div class="empty">ยังไม่มี Role</div>';
+        return;
+      }
+      document.getElementById('role-list').innerHTML = allRoles.map(r => {
+        const isAdmin = r.roleName === 'admin';
+        const perms = r.permissions.includes('all') ? ALL_PERMS : r.permissions;
+        const isAll = r.permissions.includes('all');
+        return `
+          <div class="role-item ${currentRole === r.roleName ? 'selected' : ''}" onclick="selectRole('${r.roleName}')">
+            <div class="role-item-header">
+              <div class="role-name">
+                ${isAdmin ? '🛡️' : '🔑'} ${r.roleName}
+                ${isAdmin ? '<span style="font-size:10px;color:var(--text-dim);margin-left:4px">(ระบบ)</span>' : ''}
+              </div>
+              <div style="display:flex;gap:4px">
+                <button class="act-btn" onclick="event.stopPropagation();selectRole('${r.roleName}')" title="แก้ไข"><i class="ti ti-edit"></i></button>
+                ${!isAdmin ? `<button class="act-btn danger" onclick="event.stopPropagation();askDelRole('${r.roleName}')" title="ลบ"><i class="ti ti-trash"></i></button>` : ''}
+              </div>
+            </div>
+            <div class="perm-tags">
+              ${isAll
+                ? '<span class="perm-tag perm-all">🔓 ทุกสิทธิ์</span>'
+                : perms.length
+                  ? perms.map(p => `<span class="perm-tag perm-${p}">${PERM_LABEL[p]||p}</span>`).join('')
+                  : '<span style="font-size:11px;color:var(--text-dim)">ไม่มีสิทธิ์</span>'
+              }
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function selectRole(roleName) {
+      const role = allRoles.find(r => r.roleName === roleName);
+      if (!role) return;
+      currentRole = roleName;
+      editMode = true;
+      renderRoles();
+      showForm();
+      const isAdmin = roleName === 'admin';
+      document.getElementById('form-title').innerHTML = `<i class="ti ti-edit"></i>แก้ไข Role: <strong>${roleName}</strong>`;
+      document.getElementById('f-rolename').value    = roleName;
+      document.getElementById('f-rolename').disabled = isAdmin;
+      document.getElementById('locked-note').style.display = isAdmin ? 'flex' : 'none';
+      const perms = role.permissions.includes('all') ? ALL_PERMS : role.permissions;
+      ALL_PERMS.forEach(p => {
+        const el = document.getElementById('p-' + p);
+        if (el) { el.checked = perms.includes(p); el.disabled = isAdmin; }
+      });
+    }
+
+    function newRole() {
+      currentRole = ''; editMode = false;
+      renderRoles(); showForm();
+      document.getElementById('form-title').innerHTML = '<i class="ti ti-plus"></i>สร้าง Role ใหม่';
+      document.getElementById('f-rolename').value    = '';
+      document.getElementById('f-rolename').disabled = false;
+      document.getElementById('locked-note').style.display = 'none';
+      ALL_PERMS.forEach(p => {
+        const el = document.getElementById('p-' + p);
+        if (el) { el.checked = p === 'view'; el.disabled = false; }
+      });
+      hideMsg();
+    }
+
+    function showForm() {
+      document.getElementById('form-placeholder').style.display = 'none';
+      document.getElementById('role-form').style.display = 'block';
+      hideMsg();
+    }
+    function cancelForm() {
+      currentRole = ''; editMode = false; renderRoles();
+      document.getElementById('form-placeholder').style.display = 'block';
+      document.getElementById('role-form').style.display = 'none';
+    }
+
+    async function saveRole() {
+      const roleName = document.getElementById('f-rolename').value.trim();
+      if (!roleName) { showErr('กรุณากรอกชื่อ Role'); return; }
+      if (!/^[a-zA-Z0-9_]+$/.test(roleName)) { showErr('ชื่อ Role ใช้ได้เฉพาะ a-z, 0-9, _ เท่านั้น'); return; }
+      const selectedPerms = ALL_PERMS.filter(p => document.getElementById('p-' + p)?.checked);
+      if (!selectedPerms.length) { showErr('กรุณาเลือกอย่างน้อย 1 สิทธิ์'); return; }
+      const permissions = roleName === 'admin' ? 'all' : selectedPerms.join(',');
+      try {
+        const params = editMode
+          ? { action:'editRole', roleName: currentRole || roleName, permissions }
+          : { action:'addRole', roleName, permissions };
+        const res = await apiCall(params);
+        if (res.success) {
+          showOk(editMode ? 'แก้ไข Role สำเร็จ!' : 'สร้าง Role ใหม่สำเร็จ!');
+          await loadRoles();
+          if (!editMode) cancelForm();
+        } else {
+          showErr(res.message || 'เกิดข้อผิดพลาด');
+        }
+      } catch(e) { showErr('ไม่สามารถเชื่อมต่อได้'); }
+    }
+
+    function askDelRole(roleName) {
+      if (!confirm(`ยืนยันการลบ Role "${roleName}"?\nผู้ใช้ที่ใช้ Role นี้อยู่จะต้องเปลี่ยน Role ด้วย`)) return;
+      delRole(roleName);
+    }
+    async function delRole(roleName) {
+      try {
+        const res = await apiCall({ action:'deleteRole', roleName });
+        if (res.success) {
+          if (currentRole === roleName) cancelForm();
+          showToast('ลบ Role สำเร็จ', 'success');
+          await loadRoles();
+        } else { showToast(res.message || 'ลบไม่สำเร็จ','error'); }
+      } catch(e) { showToast('ไม่สามารถเชื่อมต่อได้','error'); }
+    }
+
+    function showErr(msg) { document.getElementById('msg-err-text').textContent = msg; document.getElementById('msg-err').style.display = 'flex'; document.getElementById('msg-ok').style.display = 'none'; }
+    function showOk(msg)  { document.getElementById('msg-ok-text').textContent  = msg; document.getElementById('msg-ok').style.display  = 'flex'; document.getElementById('msg-err').style.display = 'none'; }
+    function hideMsg()    { document.getElementById('msg-err').style.display = 'none'; document.getElementById('msg-ok').style.display = 'none'; }
+
+    loadRoles();
+  </script>
+</body>
+</html>

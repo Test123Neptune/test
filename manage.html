@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Famous Tools - จัดการงาน</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <link rel="stylesheet" href="sidebar.css" />
+  <style>
+    @keyframes spin     { to { transform:rotate(360deg); } }
+    @keyframes fadeUp   { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes rowEnter { from { opacity:0; transform:translateX(-6px); } to { opacity:1; transform:translateX(0); } }
+    @keyframes rowFlash { 0%{background:rgba(96,165,250,0.15);} 100%{background:transparent;} }
+
+    .summary-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px; }
+    .ss-card { background:var(--card); border-radius:12px; padding:14px 18px; display:flex; align-items:center; gap:14px; border:1px solid var(--accent-border-dim); cursor:pointer; transition:transform 0.15s, box-shadow 0.15s; }
+    .ss-card:hover { transform:translateY(-2px); }
+    .ss-card.ss-all     { border-top:3px solid #60a5fa; }
+    .ss-card.ss-pending { border-top:3px solid #818cf8; }
+    .ss-card.ss-process { border-top:3px solid #f59e0b; }
+    .ss-card.ss-done    { border-top:3px solid #22c55e; }
+    .ss-card.ss-all:hover     { box-shadow:0 6px 20px rgba(96,165,250,0.15); }
+    .ss-card.ss-pending:hover { box-shadow:0 6px 20px rgba(129,140,248,0.15); }
+    .ss-card.ss-process:hover { box-shadow:0 6px 20px rgba(245,158,11,0.15); }
+    .ss-card.ss-done:hover    { box-shadow:0 6px 20px rgba(34,197,94,0.15); }
+    .ss-icon { width:40px; height:40px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:18px; }
+    .ss-all .ss-icon     { background:rgba(96,165,250,0.12); color:#60a5fa; }
+    .ss-pending .ss-icon { background:rgba(129,140,248,0.12); color:#818cf8; }
+    .ss-process .ss-icon { background:rgba(245,158,11,0.12);  color:#fbbf24; }
+    .ss-done .ss-icon    { background:rgba(34,197,94,0.12);   color:#4ade80; }
+    .ss-body { flex:1; }
+    .ss-label { font-size:10px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.8px; }
+    .ss-val   { font-size:24px; font-weight:700; color:var(--text-primary); line-height:1.2; }
+    [data-theme="light"] .ss-card { box-shadow:0 2px 8px rgba(0,0,0,0.05); }
+    [data-theme="light"] .ss-all .ss-icon     { background:#eff6ff; color:#2563eb; }
+    [data-theme="light"] .ss-pending .ss-icon { background:#eef2ff; color:#4f46e5; }
+    [data-theme="light"] .ss-process .ss-icon { background:#fffbeb; color:#d97706; }
+    [data-theme="light"] .ss-done .ss-icon    { background:#f0fdf4; color:#16a34a; }
+
+    .manage-card { background:var(--card); border:1px solid var(--accent-border-dim); border-top:3px solid #0d9488; border-radius:12px; overflow:hidden; animation:fadeUp 0.3s ease both; }
+    [data-theme="light"] .manage-card { box-shadow:0 2px 10px rgba(0,0,0,0.06); }
+    .manage-header { padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; border-bottom:1px solid var(--accent-border-dim); }
+    .manage-title { font-size:14px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px; }
+    .manage-title i { color:var(--accent); font-size:17px; }
+
+    .search-advanced { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .search-box { position:relative; display:flex; align-items:center; }
+    .search-box i { position:absolute; left:10px; color:var(--text-dim); font-size:15px; pointer-events:none; }
+    .search-box input { padding:7px 10px 7px 34px; width:220px; background:var(--input); border:1px solid var(--accent-border-dim); border-radius:8px; color:var(--text-primary); font-size:12px; outline:none; transition:border-color 0.2s, width 0.3s; }
+    .search-box input:focus { border-color:var(--accent); width:260px; }
+    .search-box input::placeholder { color:var(--text-dim); }
+    .prio-select { padding:7px 10px; background:var(--input); border:1px solid var(--accent-border-dim); border-radius:8px; color:var(--text-secondary); font-size:12px; outline:none; cursor:pointer; }
+    .prio-select:focus { border-color:var(--accent); }
+
+    .filter-row { display:flex; gap:6px; flex-wrap:wrap; padding:10px 18px; border-bottom:1px solid var(--accent-border-dim); }
+    .filter-btn { display:inline-flex; align-items:center; gap:5px; padding:5px 13px; border-radius:20px; font-size:11px; font-weight:600; cursor:pointer; border:1px solid var(--accent-border-dim); background:transparent; color:var(--text-secondary); transition:all 0.15s; }
+    .filter-btn i { font-size:12px; }
+    .filter-btn:hover { transform:translateY(-1px); }
+    .filter-btn:first-child.active        { background:var(--accent); color:#fff; border-color:var(--accent); box-shadow:0 3px 10px rgba(13,148,136,0.3); }
+    .filter-btn.filter-pending.active     { background:#2563eb; color:#fff; border-color:#1d4ed8; box-shadow:0 3px 10px rgba(37,99,235,0.3); }
+    .filter-btn.filter-process.active     { background:#d97706; color:#fff; border-color:#b45309; box-shadow:0 3px 10px rgba(217,119,6,0.3); }
+    .filter-btn.filter-done.active        { background:#16a34a; color:#fff; border-color:#15803d; box-shadow:0 3px 10px rgba(22,163,74,0.3); }
+    .filter-btn.filter-cancel.active      { background:#dc2626; color:#fff; border-color:#b91c1c; box-shadow:0 3px 10px rgba(220,38,38,0.3); }
+    .filter-btn.filter-pending:hover      { border-color:#60a5fa; color:#60a5fa; }
+    .filter-btn.filter-process:hover      { border-color:#fbbf24; color:#fbbf24; }
+    .filter-btn.filter-done:hover         { border-color:#4ade80; color:#4ade80; }
+    .filter-btn.filter-cancel:hover       { border-color:#f87171; color:#f87171; }
+    .filter-count { background:rgba(255,255,255,0.2); color:inherit; font-size:10px; padding:1px 6px; border-radius:10px; margin-left:2px; }
+    .filter-btn:not(.active) .filter-count { background:var(--accent-border-dim); color:var(--text-dim); }
+
+    .tbl-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; }
+    th { padding:10px 14px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; background:var(--input); border-bottom:1px solid var(--accent-border-dim); white-space:nowrap; user-select:none; }
+    th.sortable { cursor:pointer; }
+    th.sortable:hover { color:var(--accent-light); }
+    th .sort-icon { font-size:10px; margin-left:3px; opacity:0.5; }
+    th.sort-asc .sort-icon, th.sort-desc .sort-icon { opacity:1; color:var(--accent-light); }
+    td { padding:11px 14px; font-size:13px; color:var(--text-secondary); border-bottom:1px solid var(--accent-border-dim); white-space:nowrap; max-width:200px; overflow:hidden; text-overflow:ellipsis; }
+    tr:last-child td { border-bottom:none; }
+    tr:hover td { background:var(--accent-dim); }
+    .row-enter { animation:rowEnter 0.25s ease both; }
+    .row-new td { animation:rowFlash 2s ease forwards !important; }
+    .row-updated td { animation:rowFlash 1.5s ease forwards !important; }
+    .empty { text-align:center; padding:48px 0; color:var(--text-dim); font-size:13px; }
+
+    .due-overdue { color:#f87171; font-weight:600; }
+    .due-soon    { color:#f97316; font-weight:600; }
+    [data-theme="light"] .due-overdue { color:#dc2626; }
+    [data-theme="light"] .due-soon    { color:#c2410c; }
+
+    .pagination { display:flex; align-items:center; justify-content:center; gap:4px; padding:14px 16px; flex-wrap:wrap; }
+    .page-btn { min-width:34px; height:34px; border-radius:8px; border:1px solid var(--accent-border-dim); background:transparent; color:var(--text-secondary); font-size:13px; font-weight:500; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; justify-content:center; padding:0 6px; }
+    .page-btn:hover:not(:disabled) { background:var(--accent-dim); color:var(--accent-light); border-color:var(--accent-border); }
+    .page-btn.active { background:#2563eb; color:#fff; border-color:#2563eb; box-shadow:0 2px 8px rgba(37,99,235,0.3); }
+    .page-btn.nav-btn { font-size:15px; color:var(--text-secondary); }
+    .page-btn:disabled { opacity:0.3; cursor:not-allowed; }
+    .page-dots { color:var(--text-dim); font-size:13px; padding:0 4px; display:flex; align-items:center; height:34px; }
+    .page-info { font-size:11px; color:var(--text-dim); margin-left:12px; }
+
+    .rt-bar { display:flex; align-items:center; gap:8px; font-size:11px; color:var(--text-dim); padding:6px 18px; }
+    .rt-dot { width:7px; height:7px; border-radius:50%; background:#4ade80; flex-shrink:0; }
+    @keyframes rtSpin { to { transform:rotate(360deg); } }
+    .rt-dot.syncing { background:var(--accent); animation:rtSpin 0.8s linear infinite; border-radius:0; width:10px; height:10px; clip-path:polygon(50% 0%,100% 100%,0% 100%); }
+    .rt-dot.error   { background:#f87171; }
+    .rt-dot.paused  { background:#64748b; }
+    .rt-countdown { font-variant-numeric:tabular-nums; }
+    .rt-countdown.soon { color:var(--accent-light); font-weight:600; }
+
+    .modal-bg { display:none; position:fixed; inset:0; z-index:100; background:rgba(0,0,0,0.5); backdrop-filter:blur(4px); align-items:center; justify-content:center; padding:20px; }
+    .modal-bg.show { display:flex; }
+    .modal { background:var(--card); border:1px solid var(--accent-border-dim); border-top:3px solid var(--accent); border-radius:14px; padding:24px; width:600px; max-width:95vw; max-height:90vh; overflow-y:auto; animation:fadeUp 0.2s ease both; }
+    .modal-title { font-size:15px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:9px; margin-bottom:20px; padding-bottom:14px; border-bottom:1px solid var(--accent-border-dim); }
+    .modal-title i { color:var(--accent); font-size:18px; }
+    .modal-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .modal-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+    .modal-field { margin-bottom:14px; }
+    .modal-field:last-child { margin-bottom:0; }
+    .modal-field label { display:flex; align-items:center; gap:5px; font-size:11px; font-weight:700; color:var(--text-secondary); margin-bottom:7px; text-transform:uppercase; letter-spacing:0.4px; }
+    .modal-field label i { font-size:12px; color:var(--text-dim); }
+    .modal-field input, .modal-field select, .modal-field textarea { width:100%; padding:9px 13px; background:var(--input); border:1px solid var(--accent-border-dim); border-radius:8px; color:var(--text-primary); font-size:13px; outline:none; transition:border-color 0.2s, box-shadow 0.2s; font-family:inherit; }
+    .modal-field input:focus, .modal-field select:focus, .modal-field textarea:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-border-dim); }
+    .modal-field textarea { resize:vertical; min-height:80px; }
+    .modal-field input::placeholder, .modal-field textarea::placeholder { color:var(--text-dim); font-size:12px; }
+    .modal-btns { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; padding-top:16px; border-top:1px solid var(--accent-border-dim); }
+    select option[value="ด่วน"] { color:#f87171; } select option[value="ปกติ"] { color:#fbbf24; }
+    select option[value="รอดำเนินการ"] { color:#60a5fa; } select option[value="กำลังทำ"] { color:#fbbf24; }
+    select option[value="สำเร็จ"] { color:#4ade80; } select option[value="ยกเลิก"] { color:#f87171; }
+    .confirm-modal { text-align:center; padding:8px 0; }
+    .warn-icon { width:56px; height:56px; border-radius:50%; background:rgba(239,68,68,0.12); border:2px solid rgba(239,68,68,0.3); display:flex; align-items:center; justify-content:center; margin:0 auto 14px; font-size:24px; color:#f87171; }
+    .confirm-modal p { color:var(--text-secondary); font-size:14px; }
+    .item-name { color:var(--text-primary); font-weight:700; font-size:16px; margin-top:6px; }
+  </style>
+</head>
+<body>
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="icon"><i class="ti ti-shield-lock"></i></div>
+      <span class="logo-text">Famous Tools</span>
+    </div>
+    <div class="sidebar-menu">
+      <div class="menu-label-group">หลัก</div>
+      <div class="menu-item" data-tooltip="Dashboard" onclick="location.href='dashboard1.html'">
+        <i class="ti ti-layout-dashboard"></i><span class="menu-label">Dashboard</span>
+      </div>
+      <div class="menu-item active" data-tooltip="จัดการงาน">
+        <i class="ti ti-list-check"></i><span class="menu-label">จัดการงาน</span>
+      </div>
+      <div class="menu-item" data-tooltip="กระบวนการผลิต" onclick="location.href='production.html'">
+        <i class="ti ti-route"></i><span class="menu-label">กระบวนการผลิต</span>
+      </div>
+      <div class="menu-item" id="sidebar-btn-add" data-tooltip="เพิ่มงานใหม่" onclick="location.href='addwork.html'" style="display:none">
+        <i class="ti ti-plus"></i><span class="menu-label">เพิ่มงาน</span>
+      </div>
+      <div class="menu-label-group">ผู้ดูแล</div>
+      <div class="menu-item admin-item" data-tooltip="จัดการ User" onclick="location.href='users.html'">
+        <i class="ti ti-users"></i><span class="menu-label">จัดการผู้ใช้งาน</span>
+      </div>
+
+      <div class="menu-item admin-item" data-tooltip="ประวัติ Login" onclick="location.href='logs.html'">
+        <i class="ti ti-activity"></i><span class="menu-label">ประวัติเข้าระบบ</span>
+      </div>
+      <div class="menu-item admin-item" data-tooltip="ประวัติขั้นตอน" onclick="location.href='history.html'">
+        <i class="ti ti-clipboard-list"></i><span class="menu-label">ประวัติขั้นตอน</span>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="menu-item" onclick="toggleSidebar()">
+        <i class="ti ti-chevrons-left" id="collapse-icon"></i>
+        <span class="menu-label footer-label">ซ่อนแถบเมนู</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main" id="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <i class="ti ti-list-check" style="color:#0d9488"></i>
+        <div><h1>จัดการงาน</h1><p>ดู แก้ไข และจัดการงานทั้งหมดในระบบ</p></div>
+      </div>
+      <div class="topbar-right">
+        <div class="rt-bar">
+          <div class="rt-dot" id="rt-dot"></div>
+          <span id="rt-label">Live</span>
+          <span class="rt-countdown" id="rt-countdown"></span>
+        </div>
+        <span id="role-badge" class="role-badge"></span>
+        <span class="username-text" id="nav-username"></span>
+        <div class="avatar"><i class="ti ti-user"></i></div>
+        <button id="theme-toggle" onclick="toggleTheme()"></button>
+        <button class="btn-logout" onclick="logout()"><i class="ti ti-logout"></i>ออกจากระบบ</button>
+      </div>
+    </div>
+    <div class="content">
+      <div class="summary-strip">
+        <div class="ss-card ss-all" onclick="setFilter('all', document.querySelector('.filter-btn:first-child'))">
+          <div class="ss-icon"><i class="ti ti-clipboard-list"></i></div>
+          <div class="ss-body"><div class="ss-label">งานทั้งหมด</div><div class="ss-val" id="ss-total">—</div></div>
+        </div>
+        <div class="ss-card ss-pending" onclick="setFilter('รอดำเนินการ', document.querySelector('.filter-pending'))">
+          <div class="ss-icon"><i class="ti ti-clock-hour-4"></i></div>
+          <div class="ss-body"><div class="ss-label">รอดำเนินการ</div><div class="ss-val" id="ss-pending">—</div></div>
+        </div>
+        <div class="ss-card ss-process" onclick="setFilter('กำลังทำ', document.querySelector('.filter-process'))">
+          <div class="ss-icon"><i class="ti ti-loader"></i></div>
+          <div class="ss-body"><div class="ss-label">กำลังทำ</div><div class="ss-val" id="ss-process">—</div></div>
+        </div>
+        <div class="ss-card ss-done" onclick="setFilter('สำเร็จ', document.querySelector('.filter-done'))">
+          <div class="ss-icon"><i class="ti ti-circle-check"></i></div>
+          <div class="ss-body"><div class="ss-label">สำเร็จ</div><div class="ss-val" id="ss-done">—</div></div>
+        </div>
+      </div>
+
+      <div class="manage-card">
+        <div class="manage-header">
+          <div class="manage-title">
+            <i class="ti ti-table"></i>รายการงาน
+            <span class="badge-count" id="badge-count">0</span>
+          </div>
+          <div class="search-advanced">
+            <div class="search-box">
+              <i class="ti ti-search"></i>
+              <input type="text" id="search-input" placeholder="ค้นหางาน, Ref, ลูกค้า..." oninput="filterAndRender()" />
+            </div>
+            <select class="prio-select" id="prio-filter" onchange="filterAndRender()">
+              <option value="">Priority ทั้งหมด</option>
+              <option value="ด่วน">🔴 ด่วน</option>
+              <option value="ปกติ">🟡 ปกติ</option>
+            </select>
+            <button class="btn-f btn-export" id="btn-export" onclick="exportCSV()" style="display:none"><i class="ti ti-download"></i>Export</button>
+            <button class="btn-f btn-green" id="btn-add" onclick="location.href='addwork.html'" style="display:none"><i class="ti ti-plus"></i>เพิ่มงาน</button>
+            <button class="btn-f btn-blue" onclick="loadData(true)" title="รีเฟรช"><i class="ti ti-refresh"></i></button>
+          </div>
+        </div>
+        <div class="filter-row">
+          <button class="filter-btn active" onclick="setFilter('all',this)"><i class="ti ti-layout-list"></i>ทั้งหมด<span class="filter-count" id="fc-all">0</span></button>
+          <button class="filter-btn filter-pending" onclick="setFilter('รอดำเนินการ',this)"><i class="ti ti-clock-hour-4"></i>รอดำเนินการ<span class="filter-count" id="fc-pending">0</span></button>
+          <button class="filter-btn filter-process" onclick="setFilter('กำลังทำ',this)"><i class="ti ti-loader"></i>กำลังทำ<span class="filter-count" id="fc-process">0</span></button>
+          <button class="filter-btn filter-done" onclick="setFilter('สำเร็จ',this)"><i class="ti ti-circle-check"></i>สำเร็จ<span class="filter-count" id="fc-done">0</span></button>
+          <button class="filter-btn filter-cancel" onclick="setFilter('ยกเลิก',this)"><i class="ti ti-circle-x"></i>ยกเลิก<span class="filter-count" id="fc-cancel">0</span></button>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:40px">#</th>
+                <th class="sortable" id="th-title" onclick="sortBy('title')">ชื่องาน <i class="ti ti-selector sort-icon"></i></th>
+<th>Ref</th>
+                <th class="sortable" id="th-qty" onclick="sortBy('qty')">จำนวน <i class="ti ti-selector sort-icon"></i></th>
+                <th class="sortable" id="th-priority" onclick="sortBy('priority')">Priority <i class="ti ti-selector sort-icon"></i></th>
+                <th class="sortable" id="th-status" onclick="sortBy('status')">Status <i class="ti ti-selector sort-icon"></i></th>
+                <th class="sortable" id="th-duedate" onclick="sortBy('duedate')">กำหนด <i class="ti ti-selector sort-icon"></i></th>
+                <th id="action-col" style="width:90px;text-align:center">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="data-tbody"><tr><td colspan="8" class="empty">กำลังโหลด...</td></tr></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="pagination"></div>
+        <div class="rt-bar" style="border-top:1px solid var(--accent-border-dim)">
+          <div class="rt-dot" id="rt-dot2"></div>
+          <span id="rt-label2">กำลังโหลด...</span>
+          <span class="rt-countdown" id="rt-countdown2"></span>
+          <span style="margin-left:auto;font-size:10px;color:var(--text-dim)" id="last-updated"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal-form">
+    <div class="modal">
+      <div class="modal-title"><i class="ti ti-clipboard-plus" id="form-icon"></i><span id="form-title">เพิ่มงานใหม่</span></div>
+      <div class="modal-grid-2">
+        <div class="modal-field"><label><i class="ti ti-hash"></i>รหัสสินค้า / เลขงาน <span style="color:#f87171">*</span></label><input type="text" id="f-ref" placeholder="เช่น WO-001" /></div>
+        <div class="modal-field"><label><i class="ti ti-file-text"></i>ชื่องาน</label><input type="text" id="f-title" placeholder="ระบุชื่องาน" /></div>
+      </div>
+      <div class="modal-grid-3">
+        <div class="modal-field"><label><i class="ti ti-refresh"></i>สถานะ</label><select id="f-status"><option value="รอดำเนินการ">⏳ รอดำเนินการ</option><option value="กำลังทำ">⚙️ กำลังทำ</option><option value="สำเร็จ">✅ สำเร็จ</option><option value="ยกเลิก">❌ ยกเลิก</option></select></div>
+        <div class="modal-field"><label><i class="ti ti-flag"></i>ความสำคัญ</label><select id="f-priority"><option value="ด่วน">🔴 ด่วน</option><option value="ปกติ" selected>🟡 ปกติ</option></select></div>
+        <div class="modal-field"><label><i class="ti ti-stack"></i>จำนวนงาน</label><input type="number" id="f-qty" placeholder="1" min="0" value="1" /></div>
+      </div>
+      <div class="modal-grid-2">
+        <div class="modal-field"><label><i class="ti ti-calendar-plus"></i>วันที่เพิ่มงาน</label><input type="date" id="f-startdate" /></div>
+        <div class="modal-field"><label><i class="ti ti-calendar-due"></i>วันที่กำหนดส่ง</label><input type="date" id="f-duedate" /></div>
+      </div>
+      <div class="modal-field"><label><i class="ti ti-message-2"></i>Remark</label><textarea id="f-remark" placeholder="หมายเหตุเพิ่มเติม..." rows="3"></textarea></div>
+      <div class="modal-btns">
+        <button class="btn-f btn-gray" onclick="closeModal('modal-form')"><i class="ti ti-x"></i>ยกเลิก</button>
+        <button class="btn-f btn-blue" id="btn-save" onclick="saveData()"><i class="ti ti-device-floppy"></i>บันทึกข้อมูล</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal-delete">
+    <div class="modal" style="max-width:380px">
+      <div class="confirm-modal">
+        <div class="warn-icon"><i class="ti ti-trash"></i></div>
+        <p>คุณต้องการลบรายการ</p>
+        <div class="item-name" id="del-name"></div>
+        <p style="margin-top:8px;font-size:12px;color:var(--text-dim)">การกระทำนี้ไม่สามารถย้อนกลับได้</p>
+      </div>
+      <div class="modal-btns">
+        <button class="btn-f btn-gray" onclick="closeModal('modal-delete')"><i class="ti ti-x"></i>ยกเลิก</button>
+        <button class="btn-f btn-red" id="btn-confirm-del" onclick="confirmDelete()"><i class="ti ti-trash"></i>ลบ</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="theme.js"></script>
+  <script>
+    authGuard('view');
+    let allData=[],filtered=[],editId=null,deleteId=null;
+    let currentFilter='all',sortField='',sortAsc=true,page=1;
+    const PAGE_SIZE=10;
+    const CAN_ADD=hasPerm('add'),CAN_EDIT=hasPerm('edit'),CAN_DELETE=hasPerm('delete'),CAN_EXPORT=hasPerm('export');
+    if(CAN_ADD){['btn-add','sidebar-btn-add'].forEach(id=>{const b=document.getElementById(id);if(b)b.style.display='';})}
+    if(CAN_EXPORT){const b=document.getElementById('btn-export');if(b)b.style.display='flex';}
+    if(!CAN_EDIT&&!CAN_DELETE){const col=document.getElementById('action-col');if(col)col.style.display='none';}
+
+    function formatThaiDate(s){if(!s)return'—';const d=new Date(s);if(isNaN(d))return s;return d.toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric',timeZone:'Asia/Bangkok'});}
+
+    async function loadData(manual=false){
+      setRtStatus('syncing');
+      try{
+        const res=await apiCall({action:'getData'});
+        if(res.success){allData=res.data||[];updateSummary();updateFilterCounts();filterAndRender();setRtStatus('live');document.getElementById('last-updated').textContent='อัปเดต '+new Date().toLocaleTimeString('th-TH');if(manual)showToast('โหลดข้อมูลสำเร็จ','success',1500);startRealtime();}
+        else{setRtStatus('error');showToast('โหลดไม่สำเร็จ','error');}
+      }catch(e){setRtStatus('error');if(manual)showToast('ไม่สามารถเชื่อมต่อได้','error');}
+    }
+
+    function updateSummary(){
+      const total=allData.length,pending=allData.filter(d=>d.status==='รอดำเนินการ').length,process=allData.filter(d=>d.status==='กำลังทำ').length,done=allData.filter(d=>d.status==='สำเร็จ').length;
+      document.getElementById('ss-total').textContent=total;document.getElementById('ss-pending').textContent=pending;document.getElementById('ss-process').textContent=process;document.getElementById('ss-done').textContent=done;
+    }
+    function updateFilterCounts(){
+      const c={all:allData.length,รอดำเนินการ:0,กำลังทำ:0,สำเร็จ:0,ยกเลิก:0};
+      allData.forEach(d=>{if(c[d.status]!==undefined)c[d.status]++;});
+      document.getElementById('fc-all').textContent=c.all;document.getElementById('fc-pending').textContent=c['รอดำเนินการ'];document.getElementById('fc-process').textContent=c['กำลังทำ'];document.getElementById('fc-done').textContent=c['สำเร็จ'];document.getElementById('fc-cancel').textContent=c['ยกเลิก'];
+    }
+
+    function setFilter(f,btn){currentFilter=f;page=1;document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');filterAndRender();}
+
+    function sortBy(field){
+      if(sortField===field)sortAsc=!sortAsc;else{sortField=field;sortAsc=true;}
+      document.querySelectorAll('th.sortable').forEach(th=>{th.classList.remove('sort-asc','sort-desc');const ic=th.querySelector('.sort-icon');if(ic)ic.className='ti ti-selector sort-icon';});
+      const th=document.getElementById('th-'+field);
+      if(th){th.classList.add(sortAsc?'sort-asc':'sort-desc');const ic=th.querySelector('.sort-icon');if(ic)ic.className=`ti ${sortAsc?'ti-sort-ascending':'ti-sort-descending'} sort-icon`;}
+      filterAndRender();
+    }
+
+    function filterAndRender(){
+      const q=(document.getElementById('search-input').value||'').toLowerCase();
+      const prio=document.getElementById('prio-filter').value;
+      filtered=allData.filter(d=>{
+        const mF=currentFilter==='all'||d.status===currentFilter;
+        const mP=!prio||d.priority===prio;
+        const mS=!q||[d.ref,d.title,d.status,d.priority].some(v=>String(v||'').toLowerCase().includes(q));
+        return mF&&mP&&mS;
+      });
+      if(sortField){filtered.sort((a,b)=>{let va=a[sortField]||'',vb=b[sortField]||'';if(sortField==='qty'){va=parseFloat(va)||0;vb=parseFloat(vb)||0;}const c=va<vb?-1:va>vb?1:0;return sortAsc?c:-c;});}
+      document.getElementById('badge-count').textContent=filtered.length;
+      renderPage();
+    }
+
+    function renderPage(){
+      const total=filtered.length,maxPage=Math.max(1,Math.ceil(total/PAGE_SIZE));
+      if(page>maxPage)page=maxPage;
+      const start=(page-1)*PAGE_SIZE,slice=filtered.slice(start,start+PAGE_SIZE);
+      const tbody=document.getElementById('data-tbody');
+      if(!slice.length){tbody.innerHTML='<tr><td colspan="8" class="empty"><i class="ti ti-inbox" style="font-size:28px;display:block;margin-bottom:8px"></i>ไม่พบข้อมูล</td></tr>';document.getElementById('pagination').innerHTML='';return;}
+      const today=new Date();today.setHours(0,0,0,0);
+      tbody.innerHTML=slice.map((d,i)=>{
+        const pC={ด่วน:'p-high',สูง:'p-high',ปกติ:'p-mid',กลาง:'p-mid'}[d.priority]||'';
+        const sC={รอดำเนินการ:'s-pending',กำลังทำ:'s-process',สำเร็จ:'s-done',ยกเลิก:'s-fail'}[d.status]||'';
+        const dueFmt=formatThaiDate(d.duedate);
+        let dueHtml=`<span style="color:var(--text-secondary)">${dueFmt}</span>`;
+        if(d.duedate){const diff=(new Date(d.duedate)-today)/86400000;if(diff<0)dueHtml=`<span class="due-overdue"><i class="ti ti-alert-triangle" style="font-size:11px"></i> ${dueFmt}</span>`;else if(diff<=3)dueHtml=`<span class="due-soon"><i class="ti ti-bell-ringing" style="font-size:11px"></i> ${dueFmt}</span>`;}
+        const actions=(CAN_EDIT||CAN_DELETE)?`<td style="text-align:center">${CAN_EDIT?`<button class="act-btn" onclick="openEdit('${d.id}')" title="แก้ไข"><i class="ti ti-edit"></i></button>`:''} ${CAN_DELETE?`<button class="act-btn danger" onclick="askDelete('${d.id}','${String(d.title||'').replace(/'/g,"\\'")}')  " title="ลบ"><i class="ti ti-trash"></i></button>`:''}</td>`:'';
+        return `<tr class="row-enter" style="animation-delay:${i*15}ms"><td style="color:var(--text-dim);font-size:11px">${start+i+1}</td><td style="color:var(--text-primary);font-weight:600;max-width:180px">${String(d.title||'—')}</td><td>${String(d.ref||'—')}</td><td>${String(d.qty||'0')}</td><td><span class="badge ${pC}">${d.priority||'—'}</span></td><td><span class="badge ${sC}">${d.status||'—'}</span></td><td>${dueHtml}</td>${actions}</tr>`;
+      }).join('');
+      renderPagination(total,maxPage);
+    }
+
+    function renderPagination(total,maxPage){
+      const pag=document.getElementById('pagination');
+      if(maxPage<=1){pag.innerHTML='';return;}
+      let html=`<button class="page-btn nav-btn" onclick="goPage(${page-1})" ${page===1?'disabled':''}>‹</button>`;
+      const sp=[];
+      if(maxPage<=7){for(let i=1;i<=maxPage;i++)sp.push(i);}
+      else{const d=2,l=Math.max(2,page-d),r=Math.min(maxPage-1,page+d);sp.push(1);if(l>2)sp.push('...');for(let i=l;i<=r;i++)sp.push(i);if(r<maxPage-1)sp.push('...');sp.push(maxPage);}
+      sp.forEach(p2=>{html+=p2==='...'?`<span class="page-dots">…</span>`:`<button class="page-btn ${page===p2?'active':''}" onclick="goPage(${p2})">${p2}</button>`;});
+      html+=`<button class="page-btn nav-btn" onclick="goPage(${page+1})" ${page===maxPage?'disabled':''}>›</button>`;
+      html+=`<span class="page-info">แสดง ${Math.min((page-1)*PAGE_SIZE+1,total)}–${Math.min(page*PAGE_SIZE,total)} จาก ${total}</span>`;
+      pag.innerHTML=html;
+    }
+    function goPage(p2){const max=Math.ceil(filtered.length/PAGE_SIZE);if(p2<1||p2>max)return;page=p2;renderPage();}
+
+    function openEdit(id){
+      if(!hasPerm('edit')){showToast('ไม่มีสิทธิ์แก้ไขข้อมูล','error');return;}
+      const d=allData.find(x=>x.id===id);if(!d)return;
+      editId=id;
+      document.getElementById('form-icon').className='ti ti-edit';document.getElementById('form-title').textContent='แก้ไขงาน';
+      document.getElementById('f-ref').value=d.ref||'';document.getElementById('f-title').value=d.title||'';
+      document.getElementById('f-qty').value=d.qty||'1';document.getElementById('f-priority').value=d.priority||'ปกติ';document.getElementById('f-status').value=d.status||'รอดำเนินการ';
+      document.getElementById('f-startdate').value=(d.startdate||'').substring(0,10);document.getElementById('f-duedate').value=(d.duedate||'').substring(0,10);document.getElementById('f-remark').value=d.remark||'';
+      openModal('modal-form');
+    }
+
+    async function saveData(){
+      const title=document.getElementById('f-title').value.trim();if(!title){showToast('กรุณากรอกชื่องาน','warn');return;}
+      const btn=document.getElementById('btn-save');btn.disabled=true;btn.innerHTML='<span style="width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block"></span>';
+      try{
+        const res=await apiCall({action:'editData',id:editId,title,ref:document.getElementById('f-ref').value.trim(),qty:document.getElementById('f-qty').value.trim(),priority:document.getElementById('f-priority').value,status:document.getElementById('f-status').value,startdate:document.getElementById('f-startdate').value,duedate:document.getElementById('f-duedate').value,remark:document.getElementById('f-remark').value.trim()});
+        if(res.success){closeModal('modal-form');showToast('แก้ไขสำเร็จ','success');stopRealtime();await loadData();}else showToast(res.message||'เกิดข้อผิดพลาด','error');
+      }catch(e){showToast('ไม่สามารถเชื่อมต่อได้','error');}
+      finally{btn.disabled=false;btn.innerHTML='<i class="ti ti-check"></i>บันทึก';}
+    }
+
+    function askDelete(id,name){if(!hasPerm('delete')){showToast('ไม่มีสิทธิ์ลบข้อมูล','error');return;}deleteId=id;document.getElementById('del-name').textContent=name;openModal('modal-delete');}
+    async function confirmDelete(){
+      const btn=document.getElementById('btn-confirm-del');btn.disabled=true;
+      try{const res=await apiCall({action:'deleteData',id:deleteId});if(res.success){closeModal('modal-delete');showToast('ลบข้อมูลสำเร็จ','success');stopRealtime();await loadData();}else showToast(res.message||'ลบไม่สำเร็จ','error');}
+      catch(e){showToast('ไม่สามารถเชื่อมต่อได้','error');}finally{btn.disabled=false;}
+    }
+
+    function exportCSV(){
+      if(!hasPerm('export')){showToast('ไม่มีสิทธิ์ Export','error');return;}
+      const rows=[['Ref','ชื่องาน','จำนวน','Priority','Status','กำหนด','หมายเหตุ']];
+      filtered.forEach(d=>rows.push([d.ref,d.title,d.qty,d.priority,d.status,d.duedate,d.remark]));
+      const csv=rows.map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+      const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));a.download='งาน_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+      showToast('Export สำเร็จ','success');
+    }
+
+    function openModal(id){document.getElementById(id).classList.add('show');}
+    function closeModal(id){document.getElementById(id).classList.remove('show');}
+    document.querySelectorAll('.modal-bg').forEach(bg=>bg.addEventListener('click',e=>{if(e.target===bg)bg.classList.remove('show');}));
+
+    const RT_INTERVAL=30;let rtTimer=null,rtCountdown=RT_INTERVAL;
+    function startRealtime(){stopRealtime();rtCountdown=RT_INTERVAL;updateCountdown();rtTimer=setInterval(()=>{rtCountdown--;if(rtCountdown<=0){rtCountdown=RT_INTERVAL;silentRefresh();}updateCountdown();},1000);}
+    function stopRealtime(){if(rtTimer){clearInterval(rtTimer);rtTimer=null;}}
+    function updateCountdown(){['rt-countdown','rt-countdown2'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.textContent='('+rtCountdown+'s)';el.className='rt-countdown'+(rtCountdown<=5?' soon':'');});}
+    async function silentRefresh(){try{const res=await apiCall({action:'getData'});if(res.success){allData=res.data||[];updateSummary();updateFilterCounts();filterAndRender();setRtStatus('live');document.getElementById('last-updated').textContent='อัปเดต '+new Date().toLocaleTimeString('th-TH');}else setRtStatus('error');}catch(e){setRtStatus('error');}}
+    function setRtStatus(state){
+      ['rt-dot','rt-dot2'].forEach(id=>{const dot=document.getElementById(id);if(!dot)return;dot.className='rt-dot'+(state==='syncing'?' syncing':state==='error'?' error':state==='paused'?' paused':'');});
+      ['rt-label','rt-label2'].forEach(id=>{const lbl=document.getElementById(id);if(!lbl)return;lbl.textContent={live:'Live',syncing:'กำลังซิงค์...',error:'เชื่อมต่อไม่ได้',paused:'หยุดชั่วคราว'}[state]||state;});
+    }
+
+    loadData();
+  </script>
+</body>
+</html>

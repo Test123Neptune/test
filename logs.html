@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Famous Tools - ประวัติเข้าระบบ</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <link rel="stylesheet" href="sidebar.css" />
+  <style>
+    .topbar-left > i { color:#06b6d4 !important; }
+    .status-success { background:rgba(34,197,94,0.12); color:#4ade80; border:1px solid rgba(34,197,94,0.2); }
+    .status-failed  { background:rgba(239,68,68,0.12); color:#f87171; border:1px solid rgba(239,68,68,0.2); }
+  </style>
+</head>
+<body>
+
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="icon"><i class="ti ti-shield-lock"></i></div>
+      <span class="logo-text">Famous Tools</span>
+    </div>
+        <div class="sidebar-menu">
+      <div class="menu-label-group">หลัก</div>
+      <div class="menu-item" data-tooltip="Dashboard" onclick="location.href='dashboard1.html'">
+        <i class="ti ti-layout-dashboard"></i><span class="menu-label">Dashboard</span>
+      </div>
+      <div class="menu-item" data-tooltip="จัดการงาน" onclick="location.href='manage.html'">
+        <i class="ti ti-list-check"></i><span class="menu-label">จัดการงาน</span>
+      </div>
+      <div class="menu-item" data-tooltip="กระบวนการผลิต" onclick="location.href='production.html'">
+        <i class="ti ti-route"></i><span class="menu-label">กระบวนการผลิต</span>
+      </div>
+      <div class="menu-item" data-tooltip="เพิ่มงานใหม่" onclick="location.href='addwork.html'">
+        <i class="ti ti-plus"></i><span class="menu-label">เพิ่มงาน</span>
+      </div>
+      <div class="menu-label-group">ผู้ดูแล</div>
+      <div class="menu-item admin-item" data-tooltip="จัดการ User" onclick="location.href='users.html'">
+        <i class="ti ti-users"></i><span class="menu-label">จัดการผู้ใช้งาน</span>
+      </div>
+      <div class="menu-item admin-item active" data-tooltip="ประวัติ Login" onclick="location.href='logs.html'">
+        <i class="ti ti-activity"></i><span class="menu-label">ประวัติเข้าระบบ</span>
+      </div>
+      <div class="menu-item admin-item" data-tooltip="ประวัติขั้นตอน" onclick="location.href='history.html'">
+        <i class="ti ti-clipboard-list"></i><span class="menu-label">ประวัติขั้นตอน</span>
+      </div>
+    </div>
+      <div class="sidebar-footer">
+      <div class="menu-item" onclick="toggleSidebar()">
+        <i class="ti ti-chevrons-left" id="collapse-icon"></i>
+        <span class="menu-label footer-label">ซ่อนแถบเมนู</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main" id="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <i class="ti ti-activity"></i>
+        <div>
+          <h1>ประวัติเข้าระบบ</h1>
+          <p>บันทึกการ Login ทั้งหมดในระบบ</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <span id="role-badge" class="role-badge"></span>
+        <span class="username-text" id="nav-username"></span>
+        <div class="avatar"><i class="ti ti-user"></i></div>
+        <button id="theme-toggle" onclick="toggleTheme()"></button>
+        <button class="btn-logout" onclick="logout()"><i class="ti ti-logout"></i>ออกจากระบบ</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- Stats -->
+      <div class="stats-grid" style="margin-bottom:16px">
+        <div class="stat-card">
+          <div class="stat-label"><i class="ti ti-history"></i>รวมทั้งหมด</div>
+          <div class="stat-value" id="st-total">—</div>
+          <div class="stat-sub">ครั้ง</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label" style="color:#4ade80"><i class="ti ti-circle-check"></i>สำเร็จ</div>
+          <div class="stat-value" id="st-success" style="color:#4ade80">—</div>
+          <div class="stat-sub">ครั้ง</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label" style="color:#f87171"><i class="ti ti-circle-x"></i>ล้มเหลว</div>
+          <div class="stat-value" id="st-fail" style="color:#f87171">—</div>
+          <div class="stat-sub">ครั้ง</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><i class="ti ti-users"></i>ผู้ใช้ที่ Login</div>
+          <div class="stat-value" id="st-users">—</div>
+          <div class="stat-sub">คน</div>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-header">
+          <div class="table-title">
+            <i class="ti ti-list"></i>บันทึกการเข้าระบบ
+            <span class="badge-count" id="log-count">0</span>
+          </div>
+          <div class="table-actions">
+            <div class="search-wrap">
+              <i class="ti ti-search"></i>
+              <input type="text" id="search-input" placeholder="ค้นหา username..." oninput="renderLogs()" />
+            </div>
+            <select id="filter-status" onchange="renderLogs()" style="padding:6px 10px;background:var(--input);border:1px solid var(--accent-border-dim);border-radius:6px;color:var(--text-secondary);font-size:12px;outline:none">
+              <option value="">ทั้งหมด</option>
+              <option value="success">สำเร็จ</option>
+              <option value="failed">ล้มเหลว</option>
+            </select>
+            <button class="btn-f btn-blue" onclick="loadLogs(true)">
+              <i class="ti ti-refresh"></i>
+            </button>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:40px">#</th>
+                <th>Username</th>
+                <th>วันที่ / เวลา</th>
+                <th>สถานะ</th>
+              </tr>
+            </thead>
+            <tbody id="logs-tbody">
+              <tr><td colspan="4" class="empty">กำลังโหลด...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="theme.js"></script>
+  <script>
+    authGuard('manage_user');
+
+    let allLogs = [];
+
+    async function loadLogs(manual = false) {
+      try {
+        const res = await apiCall({ action: 'getLogs' });
+        if (res.success) {
+          allLogs = res.data || [];
+          updateStats();
+          renderLogs();
+          if (manual) showToast('โหลดข้อมูลสำเร็จ', 'success', 1500);
+        }
+      } catch(e) {
+        document.getElementById('logs-tbody').innerHTML = '<tr><td colspan="4" class="empty" style="color:#f87171">โหลดไม่สำเร็จ</td></tr>';
+        if (manual) showToast('โหลดไม่สำเร็จ', 'error');
+      }
+    }
+
+    function updateStats() {
+      const total   = allLogs.length;
+      const success = allLogs.filter(l => l.status === 'success').length;
+      const fail    = allLogs.filter(l => l.status !== 'success').length;
+      const users   = new Set(allLogs.map(l => l.username)).size;
+      document.getElementById('st-total').textContent   = total;
+      document.getElementById('st-success').textContent = success;
+      document.getElementById('st-fail').textContent    = fail;
+      document.getElementById('st-users').textContent   = users;
+    }
+
+    function renderLogs() {
+      const q      = (document.getElementById('search-input').value || '').toLowerCase();
+      const status = document.getElementById('filter-status').value;
+      const list   = allLogs.filter(l => {
+        const matchQ = !q || String(l.username || '').toLowerCase().includes(q);
+        const matchS = !status || l.status === status;
+        return matchQ && matchS;
+      });
+      document.getElementById('log-count').textContent = list.length;
+      if (!list.length) {
+        document.getElementById('logs-tbody').innerHTML = '<tr><td colspan="4" class="empty">ไม่พบข้อมูล</td></tr>';
+        return;
+      }
+      document.getElementById('logs-tbody').innerHTML = list.map((l, i) => `
+        <tr>
+          <td style="color:var(--text-dim);font-size:11px">${i + 1}</td>
+          <td style="color:var(--text-primary);font-weight:500">${l.username || '—'}</td>
+          <td style="font-size:12px;color:var(--text-secondary)">${l.datetime || '—'}</td>
+          <td>
+            <span class="badge ${l.status === 'success' ? 'status-success' : 'status-failed'}">
+              ${l.status === 'success' ? '✅ สำเร็จ' : '❌ ล้มเหลว'}
+            </span>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    loadLogs();
+  </script>
+</body>
+</html>

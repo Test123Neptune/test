@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Famous Tools - จัดการผู้ใช้งาน</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <link rel="stylesheet" href="sidebar.css" />
+  <style>
+    .avatar-letter {
+      width:32px; height:32px; border-radius:50%;
+      background:var(--accent-dim); border:1px solid var(--accent-border);
+      display:inline-flex; align-items:center; justify-content:center;
+      font-size:13px; font-weight:600; color:var(--accent-light);
+      text-transform:uppercase;
+    }
+    .user-info { display:flex; align-items:center; gap:10px; }
+    .user-name { color:var(--text-primary); font-weight:500; }
+    .user-sub  { font-size:11px; color:var(--text-dim); }
+    .topbar-left > i { color:#a78bfa !important; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    /* Permission cards */
+    .perm-card { display:flex; align-items:flex-start; gap:10px; padding:11px 13px; border-radius:10px; border:1.5px solid var(--accent-border-dim); background:var(--input); cursor:pointer; transition:all 0.15s; }
+    .perm-card:hover { border-color:var(--accent-border); background:var(--accent-dim); }
+    .perm-card.checked { border-color:var(--accent); background:var(--accent-dim); box-shadow:0 0 0 3px var(--accent-border-dim); }
+    .perm-check { width:18px; height:18px; border-radius:5px; flex-shrink:0; margin-top:1px; border:2px solid var(--accent-border-dim); background:var(--card); display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
+    .perm-card.checked .perm-check { background:var(--accent); border-color:var(--accent); }
+    .perm-check-icon { display:none; color:#fff; font-size:11px; }
+    .perm-card.checked .perm-check-icon { display:block; }
+    .perm-body { flex:1; }
+    .perm-name { font-size:13px; font-weight:700; color:var(--text-primary); margin-bottom:2px; display:flex; align-items:center; gap:5px; }
+    .perm-desc { font-size:10px; color:var(--text-dim); }
+    [data-theme="light"] .perm-card.checked { background:#f0fdfa; }
+  </style>
+</head>
+<body>
+
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="icon"><i class="ti ti-shield-lock"></i></div>
+      <span class="logo-text">Famous Tools</span>
+    </div>
+        <div class="sidebar-menu">
+      <div class="menu-label-group">หลัก</div>
+      <div class="menu-item" data-tooltip="Dashboard" onclick="location.href='dashboard1.html'">
+        <i class="ti ti-layout-dashboard"></i><span class="menu-label">Dashboard</span>
+      </div>
+      <div class="menu-item" data-tooltip="จัดการงาน" onclick="location.href='manage.html'">
+        <i class="ti ti-list-check"></i><span class="menu-label">จัดการงาน</span>
+      </div>
+      <div class="menu-item" data-tooltip="กระบวนการผลิต" onclick="location.href='production.html'">
+        <i class="ti ti-route"></i><span class="menu-label">กระบวนการผลิต</span>
+      </div>
+      <div class="menu-item" data-tooltip="เพิ่มงานใหม่" onclick="location.href='addwork.html'">
+        <i class="ti ti-plus"></i><span class="menu-label">เพิ่มงาน</span>
+      </div>
+      <div class="menu-label-group">ผู้ดูแล</div>
+      <div class="menu-item admin-item active" data-tooltip="จัดการ User" onclick="location.href='users.html'">
+        <i class="ti ti-users"></i><span class="menu-label">จัดการผู้ใช้งาน</span>
+      </div>
+
+      <div class="menu-item admin-item " data-tooltip="ประวัติ Login" onclick="location.href='logs.html'">
+        <i class="ti ti-activity"></i><span class="menu-label">ประวัติเข้าระบบ</span>
+      </div>
+    </div>
+      <div class="sidebar-footer">
+      <div class="menu-item" onclick="toggleSidebar()">
+        <i class="ti ti-chevrons-left" id="collapse-icon"></i>
+        <span class="menu-label footer-label">ซ่อนแถบเมนู</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main" id="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <i class="ti ti-users"></i>
+        <div>
+          <h1>จัดการผู้ใช้งาน</h1>
+          <p>เพิ่ม แก้ไข และลบผู้ใช้งานในระบบ</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <span id="role-badge" class="role-badge"></span>
+        <span class="username-text" id="nav-username"></span>
+        <div class="avatar"><i class="ti ti-user"></i></div>
+        <button id="theme-toggle" onclick="toggleTheme()"></button>
+        <button class="btn-logout" onclick="logout()"><i class="ti ti-logout"></i>ออกจากระบบ</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="table-card">
+        <div class="table-header">
+          <div class="table-title">
+            <i class="ti ti-users"></i>ผู้ใช้งานทั้งหมด
+            <span class="badge-count" id="user-count">0</span>
+          </div>
+          <div class="table-actions">
+            <div class="search-wrap">
+              <i class="ti ti-search"></i>
+              <input type="text" id="search-input" placeholder="ค้นหา..." oninput="renderUsers()" />
+            </div>
+            <button class="btn-f btn-green" onclick="openAdd()">
+              <i class="ti ti-user-plus"></i>เพิ่มผู้ใช้
+            </button>
+            <button class="btn-f btn-blue" onclick="loadUsers(true)">
+              <i class="ti ti-refresh"></i>
+            </button>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ผู้ใช้งาน</th>
+                <th>ชื่อแสดง</th>
+                <th>สิทธิ์การใช้งาน</th>
+                <th>สร้างเมื่อ</th>
+                <th>จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody">
+              <tr><td colspan="5" class="empty">กำลังโหลด...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Add/Edit -->
+  <div class="modal-bg" id="modal-user">
+    <div class="modal">
+      <div class="modal-title"><i class="ti ti-user-plus" id="user-form-icon"></i><span id="user-form-title">เพิ่มผู้ใช้ใหม่</span></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="modal-field">
+          <label>Username <span style="color:#f87171">*</span></label>
+          <input type="text" id="f-username" placeholder="ตัวอักษร a-z, 0-9, _" />
+        </div>
+        <div class="modal-field">
+          <label>ชื่อแสดงผล</label>
+          <input type="text" id="f-displayname" placeholder="ชื่อที่แสดงในระบบ" />
+        </div>
+      </div>
+
+      <div class="modal-field">
+        <label id="pw-label">รหัสผ่าน <span style="color:#f87171">*</span></label>
+        <input type="password" id="f-password" placeholder="กรอกรหัสผ่าน" />
+        <div class="pw-hint" id="pw-hint"></div>
+      </div>
+
+      <div class="modal-field">
+        <label>สิทธิ์การใช้งาน <span style="color:#f87171">*</span></label>
+        <select id="f-role" style="display:none"></select>
+        <input type="hidden" id="f-permissions" />
+        <div id="perm-cards" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
+          <div class="perm-card" data-perm="view" onclick="togglePerm(this)">
+            <div class="perm-check"><i class="ti ti-check perm-check-icon"></i></div>
+            <div class="perm-body">
+              <div class="perm-name"><i class="ti ti-eye" style="color:#60a5fa;font-size:13px"></i> ดูข้อมูล</div>
+              <div class="perm-desc">ดูรายการงานได้</div>
+            </div>
+          </div>
+          <div class="perm-card" data-perm="add" onclick="togglePerm(this)">
+            <div class="perm-check"><i class="ti ti-check perm-check-icon"></i></div>
+            <div class="perm-body">
+              <div class="perm-name"><i class="ti ti-plus" style="color:#a78bfa;font-size:13px"></i> เพิ่มงาน</div>
+              <div class="perm-desc">เพิ่มรายการงานใหม่</div>
+            </div>
+          </div>
+          <div class="perm-card" data-perm="edit" onclick="togglePerm(this)">
+            <div class="perm-check"><i class="ti ti-check perm-check-icon"></i></div>
+            <div class="perm-body">
+              <div class="perm-name"><i class="ti ti-pencil" style="color:#fb923c;font-size:13px"></i> แก้ไขงาน</div>
+              <div class="perm-desc">แก้ไขรายการที่มีอยู่</div>
+            </div>
+          </div>
+          <div class="perm-card" data-perm="delete" onclick="togglePerm(this)">
+            <div class="perm-check"><i class="ti ti-check perm-check-icon"></i></div>
+            <div class="perm-body">
+              <div class="perm-name"><i class="ti ti-trash" style="color:#f87171;font-size:13px"></i> ลบงาน</div>
+              <div class="perm-desc">ลบรายการออกจากระบบ</div>
+            </div>
+          </div>
+          <div class="perm-card" data-perm="manage_user" onclick="togglePerm(this)">
+            <div class="perm-check"><i class="ti ti-check perm-check-icon"></i></div>
+            <div class="perm-body">
+              <div class="perm-name"><i class="ti ti-users" style="color:#c084fc;font-size:13px"></i> จัดการ User</div>
+              <div class="perm-desc">เพิ่ม/ลบ/แก้ไข User & Role</div>
+            </div>
+          </div>
+          <div class="perm-card" data-perm="export" onclick="togglePerm(this)">
+            <div class="perm-check"><i class="ti ti-check perm-check-icon"></i></div>
+            <div class="perm-body">
+              <div class="perm-name"><i class="ti ti-download" style="color:#2dd4bf;font-size:13px"></i> Export</div>
+              <div class="perm-desc">ดาวน์โหลดข้อมูล CSV</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-btns">
+        <button class="btn-f btn-gray" onclick="closeModal('modal-user')"><i class="ti ti-x"></i>ยกเลิก</button>
+        <button class="btn-f btn-blue" id="btn-save-user" onclick="saveUser()"><i class="ti ti-check"></i>บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Delete -->
+  <div class="modal-bg" id="modal-del-user">
+    <div class="modal" style="max-width:360px;text-align:center">
+      <div style="width:56px;height:56px;border-radius:50%;background:rgba(239,68,68,0.1);border:2px solid rgba(239,68,68,0.3);display:flex;align-items:center;justify-content:center;font-size:24px;color:#f87171;margin:0 auto 16px">
+        <i class="ti ti-user-off"></i>
+      </div>
+      <p style="color:var(--text-secondary);font-size:14px">ยืนยันการลบผู้ใช้</p>
+      <div style="color:var(--text-primary);font-weight:600;font-size:15px;margin:6px 0" id="del-user-name"></div>
+      <p style="font-size:12px;color:var(--text-dim)">การกระทำนี้ไม่สามารถย้อนกลับได้</p>
+      <div class="modal-btns" style="margin-top:24px;justify-content:center">
+        <button class="btn-f btn-gray" onclick="closeModal('modal-del-user')"><i class="ti ti-x"></i>ยกเลิก</button>
+        <button class="btn-f btn-red" onclick="confirmDelUser()"><i class="ti ti-trash"></i>ลบ</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="theme.js"></script>
+  <script>
+    authGuard('manage_user');
+
+    let allUsers  = [];
+    let allRoles  = [];
+    let editUsername = null;
+    let deleteUsername = null;
+    const curUser = localStorage.getItem('username');
+
+    async function loadUsers(manual = false) {
+      try {
+        const res = await apiCall({ action: 'getUsers' });
+        if (res.success) {
+          allUsers = res.data || [];
+          renderUsers();
+          if (manual) showToast('โหลดข้อมูลสำเร็จ','success',1500);
+        } else {
+          document.getElementById('users-tbody').innerHTML = `<tr><td colspan="5" class="empty">โหลดไม่สำเร็จ: ${res.message||''}</td></tr>`;
+          if (manual) showToast('โหลดไม่สำเร็จ','error');
+        }
+      } catch(e) {
+        document.getElementById('users-tbody').innerHTML = '<tr><td colspan="5" class="empty">ไม่สามารถเชื่อมต่อได้</td></tr>';
+        if (manual) showToast('ไม่สามารถเชื่อมต่อได้','error');
+      }
+    }
+
+    async function loadRoles() {
+      try {
+        const res = await apiCall({ action: 'getRoles' });
+        console.log('[loadRoles] res:', res);
+        if (res && res.success) {
+          allRoles = res.data || [];
+          console.log('[loadRoles] allRoles loaded:', allRoles.length);
+        }
+      } catch(e) { console.log('[loadRoles] error:', e); }
+    }
+
+    async function ensureRolesLoaded(callback) {
+      if (allRoles.length > 0) { callback(); return; }
+      const container = document.getElementById('role-cards');
+      if (container) container.innerHTML = '<div style="color:var(--text-dim);font-size:12px;grid-column:1/-1;display:flex;align-items:center;gap:6px"><i class="ti ti-loader" style="animation:spin 1s linear infinite"></i>กำลังโหลด Role...</div>';
+      try {
+        const res = await apiCall({ action: 'getRoles' }, 8000);
+        if (res && res.success && res.data) {
+          allRoles = res.data;
+        }
+      } catch(e) {
+        // ถ้าโหลดไม่ได้ ลอง infer roles จาก users ที่มีอยู่
+        const roleNames = [...new Set(allUsers.map(u => u.role).filter(Boolean))];
+        allRoles = roleNames.map(r => ({ roleName: r, permissions: 'view' }));
+      }
+      callback();
+    }
+
+    const PERM_ICON  = { view:'👁', add:'➕', edit:'✏️', delete:'🗑', manage_user:'👥', export:'📤' };
+    const PERM_LABEL = { view:'ดูข้อมูล', add:'เพิ่มงาน', edit:'แก้ไขงาน', delete:'ลบงาน', manage_user:'จัดการ User', export:'Export' };
+    const ALL_PERMS  = ['view','add','edit','delete','manage_user','export'];
+
+    function renderRoleCards(selectedRole) {
+      const container = document.getElementById('role-cards');
+      if (!allRoles.length) { container.innerHTML = '<div style="color:var(--text-dim);font-size:12px;grid-column:1/-1">ไม่พบ Role</div>'; return; }
+      container.innerHTML = allRoles.map(r => {
+        // API return permissions เป็น array หรือ string ก็ได้
+        let perms;
+        if (Array.isArray(r.permissions)) {
+          perms = r.permissions.includes('all') ? ALL_PERMS : r.permissions;
+        } else {
+          const pStr = r.permissions || '';
+          perms = (pStr === 'all' || pStr.includes('all')) ? ALL_PERMS : pStr.split(',').map(p=>p.trim()).filter(Boolean);
+        }
+        const permStr = perms.map(p => `${PERM_ICON[p]||''} ${PERM_LABEL[p]||p}`).join('  ·  ');
+        const isSelected = r.roleName === selectedRole;
+        return `<div class="role-card ${isSelected?'selected':''}" onclick="selectRoleCard(this,'${r.roleName}')">
+          <div class="role-check"><i class="ti ti-check role-check-icon"></i></div>
+          <div>
+            <div class="role-card-name">${r.roleName}</div>
+            <div class="role-card-perms">${permStr || 'ไม่มีสิทธิ์'}</div>
+          </div>
+        </div>`;
+      }).join('');
+      document.getElementById('f-role').value = selectedRole;
+    }
+
+    function selectRoleCard(el, roleName) {
+      document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      document.getElementById('f-role').value = roleName;
+    }
+
+    function renderUsers() {
+      const q = (document.getElementById('search-input').value || '').toLowerCase();
+      const list = allUsers.filter(u =>
+        !q || [u.username, u.displayName, u.role].some(v => String(v||'').toLowerCase().includes(q))
+      );
+      document.getElementById('user-count').textContent = list.length;
+
+      if (!list.length) {
+        document.getElementById('users-tbody').innerHTML = '<tr><td colspan="5" class="empty">ไม่พบผู้ใช้งาน</td></tr>';
+        return;
+      }
+
+      document.getElementById('users-tbody').innerHTML = list.map(u => {
+        const isSelf = u.username === curUser;
+        const letter = (u.displayName || u.username || '?')[0].toUpperCase();
+        // แสดง permissions เป็น badge
+        const PERM_SHORT = { view:'ดู', add:'เพิ่ม', edit:'แก้ไข', delete:'ลบ', manage_user:'User', export:'Export' };
+        const PERM_COLOR = { view:'s-pending', add:'s-done', edit:'p-mid', delete:'s-fail', manage_user:'r-admin', export:'r-manager' };
+        const perms = u.permissions ? u.permissions.split(',').map(p=>p.trim()).filter(Boolean) : [];
+        const permBadges = perms.map(p => `<span class="badge ${PERM_COLOR[p]||''}" style="font-size:9px;padding:1px 6px">${PERM_SHORT[p]||p}</span>`).join(' ');
+        return `<tr>
+          <td>
+            <div class="user-info">
+              <div class="avatar-letter">${letter}</div>
+              <div>
+                <div class="user-name">${u.username}${isSelf ? '<span class="self-tag">คุณ</span>' : ''}</div>
+              </div>
+            </div>
+          </td>
+          <td style="color:var(--text-primary)">${u.displayName || '—'}</td>
+          <td><div style="display:flex;flex-wrap:wrap;gap:3px">${permBadges || '<span style="color:var(--text-dim);font-size:12px">ไม่มีสิทธิ์</span>'}</div></td>
+          <td style="font-size:12px">${u.createdAt || '—'}</td>
+          <td>
+            <button class="act-btn" onclick="openEdit('${u.username}')" title="แก้ไข"><i class="ti ti-edit"></i></button>
+            ${!isSelf ? `<button class="act-btn danger" onclick="askDel('${u.username}')" title="ลบ"><i class="ti ti-trash"></i></button>` : ''}
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function setPermCards(permsArray) {
+      document.querySelectorAll('.perm-card').forEach(card => {
+        const perm = card.dataset.perm;
+        const has  = permsArray.includes(perm);
+        card.classList.toggle('checked', has);
+      });
+    }
+
+    function togglePerm(card) {
+      card.classList.toggle('checked');
+    }
+
+    function getSelectedPerms() {
+      return [...document.querySelectorAll('.perm-card.checked')].map(c => c.dataset.perm);
+    }
+
+    function openAdd() {
+      editUsername = null;
+      document.getElementById('user-form-icon').className = 'ti ti-user-plus';
+      document.getElementById('user-form-title').textContent = 'เพิ่มผู้ใช้ใหม่';
+      document.getElementById('f-username').value     = '';
+      document.getElementById('f-username').disabled  = false;
+      document.getElementById('f-displayname').value  = '';
+      document.getElementById('f-password').value     = '';
+      document.getElementById('pw-label').innerHTML   = 'รหัสผ่าน <span style="color:#f87171">*</span>';
+      document.getElementById('pw-hint').textContent  = '';
+      setPermCards(['view']); // default: view
+      openModal('modal-user');
+    }
+
+    function openEdit(username) {
+      const u = allUsers.find(x => x.username === username);
+      if (!u) return;
+      editUsername = username;
+      document.getElementById('user-form-icon').className = 'ti ti-user-edit';
+      document.getElementById('user-form-title').textContent = 'แก้ไขผู้ใช้: ' + username;
+      document.getElementById('f-username').value     = username;
+      document.getElementById('f-username').disabled  = true;
+      document.getElementById('f-displayname').value  = u.displayName || '';
+      document.getElementById('f-password').value     = '';
+      document.getElementById('pw-label').innerHTML   = 'รหัสผ่านใหม่';
+      document.getElementById('pw-hint').textContent  = 'ปล่อยว่างถ้าไม่ต้องการเปลี่ยน';
+      // โหลด permissions จาก user โดยตรง (column F) หรือจาก role
+      let perms = [];
+      if (u.permissions) {
+        perms = typeof u.permissions === 'string'
+          ? u.permissions.split(',').map(p=>p.trim()).filter(Boolean)
+          : (Array.isArray(u.permissions) ? u.permissions : []);
+        if (perms.includes('all')) perms = ['view','add','edit','delete','manage_user','export'];
+      }
+      if (!perms.length) perms = ['view'];
+      setPermCards(perms);
+      openModal('modal-user');
+    }
+
+    async function saveUser() {
+      const username    = document.getElementById('f-username').value.trim();
+      const displayname = document.getElementById('f-displayname').value.trim();
+      const password    = document.getElementById('f-password').value.trim();
+      const perms       = getSelectedPerms();
+
+      if (!editUsername && !username) { showToast('กรุณากรอก Username','warn'); return; }
+      if (!editUsername && !password)  { showToast('กรุณากรอกรหัสผ่าน','warn'); return; }
+      if (!perms.length) { showToast('กรุณาเลือกสิทธิ์อย่างน้อย 1 รายการ','warn'); return; }
+
+      const permStr = perms.join(',');
+      const btn = document.getElementById('btn-save-user');
+      btn.disabled = true;
+      try {
+        const params = editUsername
+          ? { action:'editUser', username:editUsername, displayName:displayname, permissions:permStr, password }
+          : { action:'addUser',  username, displayName:displayname, permissions:permStr, password };
+        const res = await apiCall(params);
+        if (res.success) {
+          closeModal('modal-user');
+          showToast(editUsername ? 'แก้ไขผู้ใช้สำเร็จ' : 'เพิ่มผู้ใช้สำเร็จ', 'success');
+          await new Promise(r => setTimeout(r, 1500)); await loadUsers();
+        } else {
+          showToast(res.message || 'เกิดข้อผิดพลาด', 'error');
+        }
+      } catch(e) {
+        showToast('ไม่สามารถเชื่อมต่อได้','error');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function askDel(username) {
+      deleteUsername = username;
+      document.getElementById('del-user-name').textContent = username;
+      openModal('modal-del-user');
+    }
+
+    async function confirmDelUser() {
+      try {
+        const res = await apiCall({ action:'deleteUser', username: deleteUsername });
+        if (res.success) {
+          closeModal('modal-del-user');
+          showToast('ลบผู้ใช้สำเร็จ','success');
+          await new Promise(r => setTimeout(r, 1500)); await loadUsers();
+        } else {
+          showToast(res.message || 'ลบไม่สำเร็จ','error');
+        }
+      } catch(e) { showToast('ไม่สามารถเชื่อมต่อได้','error'); }
+    }
+
+    function openModal(id)  { document.getElementById(id).classList.add('show'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+    document.querySelectorAll('.modal-bg').forEach(bg => {
+      bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('show'); });
+    });
+
+    Promise.all([loadUsers(), loadRoles()]);
+  </script>
+</body>
+</html>

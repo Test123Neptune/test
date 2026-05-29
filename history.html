@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Famous Tools - ประวัติขั้นตอน</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <link rel="stylesheet" href="sidebar.css" />
+  <style>
+    @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes spin   { to{transform:rotate(360deg)} }
+    @keyframes rowIn  { from{opacity:0;transform:translateX(-4px)} to{opacity:1;transform:translateX(0)} }
+    @keyframes slideDown { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ── Card ── */
+    .hist-card {
+      background:var(--card); border:1px solid var(--accent-border-dim);
+      border-top:3px solid #0d9488; border-radius:12px; overflow:hidden;
+      animation:fadeUp 0.3s ease both;
+    }
+    [data-theme="light"] .hist-card { box-shadow:0 2px 12px rgba(0,0,0,0.06); }
+
+    /* ── Header ── */
+    .hist-header {
+      padding:14px 18px; display:flex; align-items:center;
+      justify-content:space-between; gap:12px; flex-wrap:wrap;
+      border-bottom:1px solid var(--accent-border-dim);
+    }
+    .hist-title { font-size:14px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px; }
+    .hist-title i { color:var(--accent); font-size:17px; }
+
+    /* ── Toolbar ── */
+    .hist-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .search-box { position:relative; }
+    .search-box i { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--text-dim); font-size:14px; pointer-events:none; }
+    .search-box input { padding:7px 10px 7px 33px; width:220px; background:var(--input); border:1px solid var(--accent-border-dim); border-radius:8px; color:var(--text-primary); font-size:12px; outline:none; transition:border-color 0.2s,width 0.3s; }
+    .search-box input:focus { border-color:var(--accent); width:260px; }
+    .search-box input::placeholder { color:var(--text-dim); }
+    .step-sel { padding:7px 10px; background:var(--input); border:1px solid var(--accent-border-dim); border-radius:8px; color:var(--text-secondary); font-size:12px; outline:none; cursor:pointer; }
+    .step-sel:focus { border-color:var(--accent); }
+
+    /* ── Table ── */
+    .tbl-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; }
+    th { padding:9px 16px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; background:var(--input); border-bottom:1px solid var(--accent-border-dim); white-space:nowrap; user-select:none; }
+    td { padding:12px 16px; font-size:13px; color:var(--text-secondary); border-bottom:1px solid var(--accent-border-dim); white-space:nowrap; }
+    tr.main-row:hover td { background:var(--accent-dim); }
+    tr.detail-row > td { padding:0 !important; background:var(--input) !important; }
+    .row-in { animation:rowIn 0.2s ease both; }
+    .empty { text-align:center; padding:48px 0; color:var(--text-dim); font-size:13px; }
+    .empty i { font-size:28px; display:block; margin-bottom:8px; opacity:0.4; }
+
+    /* ── Expand button ── */
+    .expand-btn {
+      width:26px; height:26px; border-radius:6px;
+      border:1px solid var(--accent-border-dim); background:transparent;
+      color:var(--text-dim); cursor:pointer;
+      display:inline-flex; align-items:center; justify-content:center;
+      transition:all 0.15s; font-size:12px; flex-shrink:0;
+    }
+    .expand-btn:hover { background:var(--accent-dim); color:var(--accent-light); border-color:var(--accent-border); }
+    .expand-btn.open  { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+    /* ── Detail panel ── */
+    .detail-panel { padding:14px 18px 18px; animation:slideDown 0.2s ease both; }
+    .detail-head {
+      font-size:10px; font-weight:700; color:var(--text-dim);
+      text-transform:uppercase; letter-spacing:1px;
+      display:flex; align-items:center; gap:8px; margin-bottom:12px;
+    }
+    .detail-head::after { content:''; flex:1; height:1px; background:var(--accent-border-dim); }
+
+    /* ── Step cards horizontal ── */
+    .step-flow { display:flex; align-items:stretch; gap:0; flex-wrap:wrap; }
+    .step-node {
+      display:flex; align-items:stretch; gap:0;
+    }
+    .step-node:not(:last-child) .step-arrow { display:flex; align-items:center; padding:0 4px; color:var(--text-dim); font-size:11px; }
+    .step-item {
+      background:var(--card); border:1px solid var(--accent-border-dim);
+      border-radius:10px; padding:10px 14px; min-width:160px;
+      position:relative; overflow:hidden;
+      transition:transform 0.15s, box-shadow 0.15s;
+    }
+    .step-item:hover { transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,0.1); }
+    .step-item::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+    .si-ตัด::before    { background:#60a5fa; }
+    .si-เจียร::before  { background:#818cf8; }
+    .si-CNC::before    { background:#fbbf24; }
+    .si-QC::before     { background:#4ade80; }
+    .si-Coding::before { background:#f97316; }
+    .si-done::before   { background:#22c55e; }
+    .step-item-top { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+    .step-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .sd-ตัด    { background:#60a5fa; box-shadow:0 0 0 3px rgba(96,165,250,0.2); }
+    .sd-เจียร  { background:#818cf8; box-shadow:0 0 0 3px rgba(129,140,248,0.2); }
+    .sd-CNC    { background:#fbbf24; box-shadow:0 0 0 3px rgba(245,158,11,0.2); }
+    .sd-QC     { background:#4ade80; box-shadow:0 0 0 3px rgba(34,197,94,0.2); }
+    .sd-Coding { background:#f97316; box-shadow:0 0 0 3px rgba(249,115,22,0.2); }
+    .sd-done   { background:#22c55e; box-shadow:0 0 0 3px rgba(34,197,94,0.2); }
+    .step-name-label { font-size:12px; font-weight:700; color:var(--text-primary); }
+    .step-by-row { font-size:11px; color:var(--text-secondary); display:flex; align-items:center; gap:4px; margin-bottom:2px; }
+    .step-at-row { font-size:10px; color:var(--text-dim); }
+    [data-theme="light"] .step-item { box-shadow:0 1px 4px rgba(0,0,0,0.05); }
+
+    /* ── Summary badges ── */
+    .sbadge { display:inline-flex; align-items:center; padding:2px 7px; border-radius:4px; font-size:10px; font-weight:700; margin-right:3px; }
+    .sb-ตัด       { background:rgba(96,165,250,0.12); color:#60a5fa; }
+    .sb-เจียร     { background:rgba(129,140,248,0.12); color:#818cf8; }
+    .sb-CNC       { background:rgba(245,158,11,0.12);  color:#fbbf24; }
+    .sb-QC        { background:rgba(34,197,94,0.12);   color:#4ade80; }
+    .sb-Coding    { background:rgba(249,115,22,0.12);  color:#f97316; }
+    .sb-done      { background:rgba(34,197,94,0.15);   color:#22c55e; font-weight:800; }
+    [data-theme="light"] .sb-ตัด    { background:#eff6ff; color:#2563eb; }
+    [data-theme="light"] .sb-เจียร  { background:#eef2ff; color:#4f46e5; }
+    [data-theme="light"] .sb-CNC    { background:#fffbeb; color:#d97706; }
+    [data-theme="light"] .sb-QC     { background:#f0fdf4; color:#16a34a; }
+    [data-theme="light"] .sb-Coding { background:#fff7ed; color:#c2410c; }
+    [data-theme="light"] .sb-done   { background:#dcfce7; color:#15803d; }
+
+    /* ── Status badge ── */
+    .s-pending { background:rgba(37,99,235,0.1);  color:#60a5fa; border:1px solid rgba(37,99,235,0.2); padding:3px 9px; border-radius:20px; font-size:10px; font-weight:700; }
+    .s-process  { background:rgba(217,119,6,0.1);  color:#fbbf24; border:1px solid rgba(217,119,6,0.2);  padding:3px 9px; border-radius:20px; font-size:10px; font-weight:700; }
+    .s-done     { background:rgba(22,163,74,0.1);  color:#4ade80; border:1px solid rgba(22,163,74,0.2);  padding:3px 9px; border-radius:20px; font-size:10px; font-weight:700; }
+    .s-fail     { background:rgba(220,38,38,0.1);  color:#f87171; border:1px solid rgba(220,38,38,0.2);  padding:3px 9px; border-radius:20px; font-size:10px; font-weight:700; }
+    [data-theme="light"] .s-pending { background:#eff6ff; color:#2563eb; border-color:#bfdbfe; }
+    [data-theme="light"] .s-process { background:#fffbeb; color:#d97706; border-color:#fde68a; }
+    [data-theme="light"] .s-done    { background:#f0fdf4; color:#16a34a; border-color:#bbf7d0; }
+    [data-theme="light"] .s-fail    { background:#fef2f2; color:#dc2626; border-color:#fecaca; }
+
+    /* ── RT bar ── */
+    .rt-bar { display:flex; align-items:center; gap:8px; font-size:11px; color:var(--text-dim); padding:6px 18px; border-top:1px solid var(--accent-border-dim); }
+    .rt-dot { width:7px; height:7px; border-radius:50%; background:#4ade80; flex-shrink:0; }
+    .rt-dot.syncing { background:var(--accent); animation:spin 0.8s linear infinite; border-radius:0; width:10px; height:10px; clip-path:polygon(50% 0%,100% 100%,0% 100%); }
+    .rt-dot.error   { background:#f87171; }
+  </style>
+</head>
+<body>
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="icon"><i class="ti ti-shield-lock"></i></div>
+      <span class="logo-text">Famous Tools</span>
+    </div>
+    <div class="sidebar-menu">
+      <div class="menu-label-group">หลัก</div>
+      <div class="menu-item" data-tooltip="Dashboard" onclick="location.href='dashboard1.html'"><i class="ti ti-layout-dashboard"></i><span class="menu-label">Dashboard</span></div>
+      <div class="menu-item" data-tooltip="จัดการงาน" onclick="location.href='manage.html'"><i class="ti ti-list-check"></i><span class="menu-label">จัดการงาน</span></div>
+      <div class="menu-item" data-tooltip="กระบวนการผลิต" onclick="location.href='production.html'"><i class="ti ti-route"></i><span class="menu-label">กระบวนการผลิต</span></div>
+      <div class="menu-item" data-tooltip="เพิ่มงานใหม่" onclick="location.href='addwork.html'"><i class="ti ti-plus"></i><span class="menu-label">เพิ่มงาน</span></div>
+      <div class="menu-label-group">ผู้ดูแล</div>
+      <div class="menu-item admin-item" data-tooltip="จัดการ User" onclick="location.href='users.html'"><i class="ti ti-users"></i><span class="menu-label">จัดการผู้ใช้งาน</span></div>
+      <div class="menu-item admin-item" data-tooltip="ประวัติ Login" onclick="location.href='logs.html'"><i class="ti ti-activity"></i><span class="menu-label">ประวัติเข้าระบบ</span></div>
+      <div class="menu-item admin-item active" data-tooltip="ประวัติขั้นตอน"><i class="ti ti-clipboard-list"></i><span class="menu-label">ประวัติขั้นตอน</span></div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="menu-item" onclick="toggleSidebar()"><i class="ti ti-chevrons-left" id="collapse-icon"></i><span class="menu-label footer-label">ซ่อนแถบเมนู</span></div>
+    </div>
+  </div>
+
+  <div class="main" id="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <i class="ti ti-clipboard-list" style="color:#0d9488"></i>
+        <div><h1>ประวัติขั้นตอนการทำงาน</h1><p>บันทึกการเปลี่ยนขั้นตอนการผลิตทั้งหมด</p></div>
+      </div>
+      <div class="topbar-right">
+        <div class="rt-bar"><div class="rt-dot" id="rt-dot"></div><span id="rt-label">Live</span></div>
+        <span id="role-badge" class="role-badge"></span>
+        <span class="username-text" id="nav-username"></span>
+        <div class="avatar"><i class="ti ti-user"></i></div>
+        <button id="theme-toggle" onclick="toggleTheme()"></button>
+        <button class="btn-logout" onclick="logout()"><i class="ti ti-logout"></i>ออกจากระบบ</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="hist-card">
+        <div class="hist-header">
+          <div class="hist-title"><i class="ti ti-clipboard-list"></i>ประวัติขั้นตอน<span class="badge-count" id="badge-count">0</span></div>
+          <div class="hist-toolbar">
+            <div class="search-box">
+              <i class="ti ti-search"></i>
+              <input type="text" id="search-input" placeholder="ค้นหา Ref, ชื่องาน..." oninput="renderTable()" />
+            </div>
+            <select class="step-sel" id="step-filter" onchange="renderTable()">
+              <option value="">ขั้นตอนทั้งหมด</option>
+              <option value="ตัด">ตัด</option>
+              <option value="เจียร">เจียร</option>
+              <option value="CNC">CNC</option>
+              <option value="QC">QC</option>
+              <option value="Coding">Coding</option>
+              <option value="เสร็จสิ้น">เสร็จสิ้น</option>
+            </select>
+            <button class="btn-f btn-blue" onclick="loadData(true)" title="รีเฟรช"><i class="ti ti-refresh"></i></button>
+            <span style="font-size:11px;color:var(--text-dim)" id="last-updated"></span>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:40px">#</th>
+                <th>รหัสสินค้า</th>
+                <th>ชื่องาน</th>
+                <th>สถานะ</th>
+                <th>วันที่เพิ่ม</th>
+                <th>เวลาเริ่มผลิต</th>
+                <th style="text-align:right">ขั้นตอนที่ผ่าน</th>
+              </tr>
+            </thead>
+            <tbody id="hist-tbody">
+              <tr><td colspan="7" class="empty"><i class="ti ti-loader" style="animation:spin 1s linear infinite;font-size:24px;display:block;margin-bottom:8px"></i>กำลังโหลด...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="rt-bar">
+          <div class="rt-dot" id="rt-dot2"></div>
+          <span id="rt-label2">กำลังโหลด...</span>
+          <span style="margin-left:auto;font-size:10px;color:var(--text-dim)" id="last-updated2"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="theme.js"></script>
+  <script>
+    authGuard('manage_user');
+    let allRows=[], filtered=[];
+
+    const STEPS = [
+      { key:'s1', label:'ตัด',       cls:'ตัด',    dot:'sd-ตัด',    si:'si-ตัด',    sb:'sb-ตัด' },
+      { key:'s2', label:'เจียร',     cls:'เจียร',  dot:'sd-เจียร',  si:'si-เจียร',  sb:'sb-เจียร' },
+      { key:'s3', label:'CNC',       cls:'CNC',    dot:'sd-CNC',    si:'si-CNC',    sb:'sb-CNC' },
+      { key:'s4', label:'QC',        cls:'QC',     dot:'sd-QC',     si:'si-QC',     sb:'sb-QC' },
+      { key:'s5', label:'Coding',    cls:'Coding', dot:'sd-Coding', si:'si-Coding', sb:'sb-Coding' },
+      { key:'s6', label:'เสร็จสิ้น', cls:'done',   dot:'sd-done',   si:'si-done',   sb:'sb-done' },
+    ];
+    const STEP_KEY = { ตัด:'s1', เจียร:'s2', CNC:'s3', QC:'s4', Coding:'s5', เสร็จสิ้น:'s6' };
+
+    async function loadData(manual=false) {
+      setRtStatus('syncing');
+      try {
+        const res = await apiCall({ action:'getHistoryLog' });
+        if (res.success) {
+          allRows=res.data||[]; renderTable(); setRtStatus('live');
+          const t=new Date().toLocaleTimeString('th-TH');
+          document.getElementById('last-updated').textContent='อัปเดต '+t;
+          document.getElementById('last-updated2').textContent='อัปเดต '+t;
+          if(manual) showToast('โหลดข้อมูลสำเร็จ','success',1500);
+        } else { setRtStatus('error'); showToast('โหลดไม่สำเร็จ','error'); }
+      } catch(e) { setRtStatus('error'); if(manual) showToast('ไม่สามารถเชื่อมต่อได้','error'); }
+    }
+
+    function renderTable() {
+      const q=((document.getElementById('search-input').value)||'').toLowerCase();
+      const stepF=document.getElementById('step-filter').value;
+      filtered=allRows.filter(r=>{
+        const mQ=!q||[r.ref,r.title,r.s1,r.s1by,r.s2,r.s2by,r.s3,r.s3by,r.s4,r.s4by,r.s5,r.s5by,r.s6,r.s6by].some(v=>String(v||'').toLowerCase().includes(q));
+        const mS=!stepF||r[STEP_KEY[stepF]];
+        return mQ&&mS;
+      });
+      document.getElementById('badge-count').textContent=filtered.length;
+      const tbody=document.getElementById('hist-tbody');
+      if(!filtered.length){tbody.innerHTML='<tr><td colspan="7" class="empty"><i class="ti ti-inbox"></i>ไม่พบข้อมูล</td></tr>';return;}
+
+      tbody.innerHTML=filtered.map((r,i)=>{
+        let dateStr='—';
+        if(r.dateAdded){const d=new Date(r.dateAdded);dateStr=!isNaN(d)?d.toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric',timeZone:'Asia/Bangkok'}):String(r.dateAdded).substring(0,10);}
+
+        const doneSteps=STEPS.filter(s=>r[s.key]);
+        const badges=doneSteps.map(s=>`<span class="sbadge ${s.sb}">${s.label}</span>`).join('');
+
+        const flowCards=doneSteps.map((s,si,arr)=>`
+          <div class="step-node">
+            <div class="step-item ${s.si}">
+              <div class="step-item-top">
+                <div class="step-dot ${s.dot}"></div>
+                <div class="step-name-label">${s.label}</div>
+              </div>
+              <div class="step-by-row"><i class="ti ti-user" style="font-size:10px;opacity:0.5"></i>${r[s.key+'by']||'—'}</div>
+              <div class="step-at-row">${r[s.key+'at']||'—'}</div>
+            </div>
+            ${si<arr.length-1?'<div class="step-arrow"><i class="ti ti-chevron-right"></i></div>':''}
+          </div>`).join('');
+
+        const sMap = { รอดำเนินการ:'s-pending', กำลังทำ:'s-process', สำเร็จ:'s-done', ยกเลิก:'s-fail' };
+        const sCls = sMap[r.status]||'s-pending';
+        return `<tr class="main-row row-in" style="animation-delay:${i*20}ms">
+          <td style="color:var(--text-dim);font-size:11px">${i+1}</td>
+          <td style="font-weight:700;color:var(--text-primary)">${r.ref||'—'}</td>
+          <td>${r.title||'—'}</td>
+          <td><span class="${sCls}">${r.status||'—'}</span></td>
+          <td style="font-size:12px;color:var(--text-secondary)">${dateStr}</td>
+          <td style="font-size:12px;color:var(--text-dim)">${r.timeStart||'—'}</td>
+          <td style="text-align:right">
+            <span>${badges||'<span style="color:var(--text-dim);font-size:11px">ยังไม่มี</span>'}</span>
+            <button class="expand-btn" onclick="toggleDetail(${i})" id="btn-${i}" style="margin-left:8px">
+              <i class="ti ti-chevron-down" id="icon-${i}"></i>
+            </button>
+          </td>
+        </tr>
+        <tr id="detail-${i}" style="display:none">
+          <td colspan="7" style="padding:0;background:var(--input);border-bottom:2px solid var(--accent-border-dim)">
+            <div class="detail-panel">
+              <div class="detail-head"><i class="ti ti-history" style="font-size:12px"></i>ประวัติขั้นตอน</div>
+              <div class="step-flow">${flowCards||'<span style="color:var(--text-dim);font-size:12px">ยังไม่มีประวัติ</span>'}</div>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function toggleDetail(i){
+      const row=document.getElementById('detail-'+i),btn=document.getElementById('btn-'+i),icon=document.getElementById('icon-'+i);
+      const open=row.style.display!=='none';
+      row.style.display=open?'none':'';
+      btn.classList.toggle('open',!open);
+      icon.className=open?'ti ti-chevron-down':'ti ti-chevron-up';
+    }
+
+    function setRtStatus(state){
+      ['rt-dot','rt-dot2'].forEach(id=>{const d=document.getElementById(id);if(d)d.className='rt-dot'+(state==='syncing'?' syncing':state==='error'?' error':'');});
+      ['rt-label','rt-label2'].forEach(id=>{const l=document.getElementById(id);if(l)l.textContent={live:'Live',syncing:'กำลังซิงค์...',error:'เชื่อมต่อไม่ได้'}[state]||state;});
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
