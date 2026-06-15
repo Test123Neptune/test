@@ -432,8 +432,8 @@
 
     let allData = [];
     let rtTimer = null;
-    const RT_INTERVAL = 30;
-    let rtCountdown = RT_INTERVAL;
+    const RT_INTERVAL = 15000;
+    let lastSnapshot = '';
 
     // ── STATUS HELPERS ──────────────────────────────────────
     function getStatusClass(status) {
@@ -569,9 +569,11 @@
       try {
         const res = await apiCall({ action: 'getData' });
         if (res.success) {
+          const snap = JSON.stringify((res.data||[]).map(d=>({id:d.id,step:d.step,status:d.status})));
+          const changed = snap !== lastSnapshot;
+          lastSnapshot = snap;
           allData = res.data || [];
-          updateStats(allData);
-          renderCards(allData);
+          if (changed || manual) { updateStats(allData); renderCards(allData); if (changed && !manual) flashUpdate(); }
           const now = new Date().toLocaleTimeString('th-TH');
           document.getElementById('last-updated').textContent = 'อัพเดตล่าสุด ' + now;
           setRtStatus('live');
@@ -597,18 +599,20 @@
       const lbl = document.getElementById('rt-label');
       if (!dot || !lbl) return;
       dot.className = 'rt-dot' + (state === 'syncing' ? ' syncing' : state === 'error' ? ' error' : '');
-      lbl.textContent = state === 'syncing' ? 'กำลังซิงค์...' : state === 'error' ? 'ขาดการเชื่อมต่อ' : 'Live';
+      lbl.textContent = state === 'syncing' ? 'กำลังเช็ค...' : state === 'error' ? 'เชื่อมต่อไม่ได้' : 'Live';
+    }
+
+    function flashUpdate() {
+      const g = document.getElementById('recent-grid');
+      if (!g) return;
+      g.style.transition = 'background 0.3s ease';
+      g.style.background = 'rgba(34,197,94,0.06)';
+      setTimeout(() => { g.style.background = ''; setTimeout(() => { g.style.transition = ''; }, 300); }, 800);
     }
 
     function startRealtime() {
-      rtCountdown = RT_INTERVAL;
-      rtTimer = setInterval(() => {
-        rtCountdown--;
-        if (rtCountdown <= 0) {
-          rtCountdown = RT_INTERVAL;
-          loadData();
-        }
-      }, 1000);
+      if (rtTimer) clearInterval(rtTimer);
+      rtTimer = setInterval(() => loadData(), RT_INTERVAL);
     }
 
     document.addEventListener('visibilitychange', () => {

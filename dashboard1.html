@@ -504,8 +504,6 @@
     .rt-dot.error { background:#f87171; animation:none; }
     .rt-dot.paused { background:#64748b; animation:none; }
     .rt-label { font-weight:500; }
-    .rt-countdown { font-variant-numeric:tabular-nums; }
-    .rt-countdown.soon { color:var(--accent-light); font-weight:600; }
     @keyframes rtPulse {
       0%   { box-shadow:0 0 0 0 rgba(74,222,128,0.5); }
       70%  { box-shadow:0 0 0 6px rgba(74,222,128,0); }
@@ -582,7 +580,6 @@
         <div class="rt-bar">
           <div class="rt-dot" id="rt-dot"></div>
           <span class="rt-label" id="rt-label">Live</span>
-          <span class="rt-countdown" id="rt-countdown"></span>
         </div>
         <span id="role-badge" class="role-badge"></span>
         <span class="username-text" id="nav-username"></span>
@@ -1142,6 +1139,7 @@
           filterAndRender({ added: allData.map(d => d.id), updated: [] });
           const now = new Date().toLocaleTimeString('th-TH');
           document.getElementById('last-updated').textContent = 'อัพเดตล่าสุด ' + now;
+          lastSnapshot = makeSnapshot(allData);
           setRtStatus('live');
           startRealtime();
         }
@@ -1438,60 +1436,47 @@
     });
 
     // ── REAL-TIME SYSTEM ──────────────────────────────────
-    const RT_INTERVAL = 30; // วินาที
+    const RT_INTERVAL = 15000;
     let rtTimer = null;
-    let rtCountdown = RT_INTERVAL;
-    let prevDataMap = {};
+    let lastSnapshot = '';
 
-    function startRealtime() {
-      stopRealtime();
-      rtCountdown = RT_INTERVAL;
-      updateCountdown();
-      rtTimer = setInterval(() => {
-        rtCountdown--;
-        if (rtCountdown <= 0) {
-          rtCountdown = RT_INTERVAL;
-          silentRefresh();
-        }
-        updateCountdown();
-      }, 1000);
+    function makeSnapshot(data) { return JSON.stringify(data.map(d => ({id:d.id,step:d.step,status:d.status}))); }
+
+    function flashUpdate() {
+      const g = document.getElementById('cards-grid') || document.querySelector('.cards-grid') || document.querySelector('.content');
+      if (!g) return;
+      g.style.transition = 'background 0.3s ease';
+      g.style.background = 'rgba(34,197,94,0.06)';
+      setTimeout(() => { g.style.background = ''; setTimeout(() => { g.style.transition = ''; }, 300); }, 800);
     }
 
-    function stopRealtime() {
-      if (rtTimer) { clearInterval(rtTimer); rtTimer = null; }
-    }
-
-    function updateCountdown() {
-      const el = document.getElementById('rt-countdown');
-      if (!el) return;
-      el.textContent = '(' + rtCountdown + 's)';
-      el.className = 'rt-countdown' + (rtCountdown <= 5 ? ' soon' : '');
-    }
+    function startRealtime() { stopRealtime(); rtTimer = setInterval(silentRefresh, RT_INTERVAL); }
+    function stopRealtime()  { if (rtTimer) { clearInterval(rtTimer); rtTimer = null; } }
 
     function setRtStatus(state) {
       const dot = document.getElementById('rt-dot');
       const lbl = document.getElementById('rt-label');
       if (!dot || !lbl) return;
-      dot.className = 'rt-dot' + (state === 'syncing' ? ' syncing' : state === 'error' ? ' error' : state === 'paused' ? ' paused' : '');
-      lbl.textContent = state === 'syncing' ? 'กำลังซิงค์...' : state === 'error' ? 'ขาดการเชื่อมต่อ' : state === 'paused' ? 'หยุดชั่วคราว' : 'Live';
+      dot.className = 'rt-dot' + (state === 'syncing' ? ' syncing' : state === 'error' ? ' error' : '');
+      lbl.textContent = { syncing:'กำลังเช็ค...', error:'เชื่อมต่อไม่ได้', live:'Live' }[state] || 'Live';
     }
 
-    // Silent refresh — เปรียบเทียบ detect changes
+    // Silent refresh — snapshot diff, re-render เฉพาะเมื่อข้อมูลเปลี่ยน
     async function silentRefresh() {
       setRtStatus('syncing');
       try {
         const res = await apiCall({ action: 'getData' });
         if (res.success) {
           const newData = res.data || [];
-          const changes = detectChanges(allData, newData);
-          allData = newData;
-          updateStats();
-          filterAndRender(changes);
-          const now = new Date().toLocaleTimeString('th-TH');
-          document.getElementById('last-updated').textContent = 'อัพเดตล่าสุด ' + now;
-          if (changes.added.length || changes.updated.length) {
-            const n = changes.added.length + changes.updated.length;
-            showToast('🔄 อัพเดต ' + n + ' รายการ', 'info', 2500);
+          const snap = makeSnapshot(newData);
+          if (snap !== lastSnapshot) {
+            lastSnapshot = snap;
+            const changes = detectChanges(allData, newData);
+            allData = newData;
+            updateStats();
+            filterAndRender(changes);
+            flashUpdate();
+            document.getElementById('last-updated').textContent = 'อัพเดตล่าสุด ' + new Date().toLocaleTimeString('th-TH');
           }
           setRtStatus('live');
         } else {
@@ -1518,7 +1503,7 @@
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         stopRealtime();
-        setRtStatus('paused');
+        setRtStatus('error');
       } else {
         silentRefresh().then(() => startRealtime());
       }

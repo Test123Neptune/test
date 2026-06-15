@@ -141,22 +141,49 @@
     .pc-actions { display:flex; gap:6px; flex-shrink:0; }
 
     /* Status quick-change buttons */
-    .status-btns { display:flex; gap:5px; flex-wrap:wrap; padding:0 16px 12px; }
-    .sbt {
-      padding:4px 10px; border-radius:6px; font-size:10px; font-weight:700;
-      cursor:pointer; border:1px solid transparent; transition:all 0.15s;
-      display:flex; align-items:center; gap:4px;
+    .status-btns {
+      display:flex; gap:5px; flex-wrap:wrap;
+      padding:10px 14px 12px;
+      background:var(--input);
+      border-top:1px solid var(--accent-border-dim);
+      margin-top:2px;
     }
-    .sbt-pending { background:rgba(129,140,248,0.1); color:#818cf8; border-color:rgba(129,140,248,0.25); }
-    .sbt-process { background:rgba(245,158,11,0.1);  color:#fbbf24; border-color:rgba(245,158,11,0.25); }
-    .sbt-done    { background:rgba(34,197,94,0.1);   color:#4ade80; border-color:rgba(34,197,94,0.25); }
-    .sbt-cancel  { background:rgba(100,116,139,0.1); color:#94a3b8; border-color:rgba(100,116,139,0.25); }
-    .sbt.active  { opacity:0.4; cursor:default; }
-    .sbt:not(.active):hover { transform:scale(1.05); filter:brightness(1.2); }
-    [data-theme="light"] .sbt-pending { background:#eef2ff; color:#4f46e5; border-color:#c7d2fe; }
-    [data-theme="light"] .sbt-process { background:#fffbeb; color:#d97706; border-color:#fde68a; }
-    [data-theme="light"] .sbt-done    { background:#f0fdf4; color:#16a34a; border-color:#bbf7d0; }
-    [data-theme="light"] .sbt-cancel  { background:#f8fafc; color:#64748b; border-color:#cbd5e1; }
+    .sbt {
+      padding:5px 11px; border-radius:20px; font-size:10px; font-weight:700;
+      cursor:pointer; border:1.5px solid transparent; transition:all 0.18s;
+      display:flex; align-items:center; gap:5px; letter-spacing:0.3px;
+      user-select:none;
+    }
+    .sbt i { font-size:11px; }
+    .sbt-cutting { background:rgba(96,165,250,0.1);  color:#60a5fa; border-color:rgba(96,165,250,0.3); }
+    .sbt-manual  { background:rgba(167,139,250,0.1); color:#a78bfa; border-color:rgba(167,139,250,0.3); }
+    .sbt-cnc     { background:rgba(251,191,36,0.1);  color:#fbbf24; border-color:rgba(251,191,36,0.3); }
+    .sbt-qc      { background:rgba(52,211,153,0.1);  color:#34d399; border-color:rgba(52,211,153,0.3); }
+    .sbt-coating { background:rgba(249,115,22,0.1);  color:#f97316; border-color:rgba(249,115,22,0.3); }
+    .sbt-finish  { background:rgba(34,197,94,0.1);   color:#4ade80; border-color:rgba(34,197,94,0.3); }
+    .sbt-cancel  { background:rgba(248,113,113,0.08);color:#f87171; border-color:rgba(248,113,113,0.25); }
+
+    .sbt.active {
+      opacity:1; cursor:default;
+      box-shadow:0 0 0 2px currentColor;
+      filter:brightness(1.15);
+    }
+    .sbt.active::before { content:'✓ '; font-size:9px; }
+    .sbt:not(.active):hover {
+      transform:translateY(-1px);
+      box-shadow:0 3px 10px rgba(0,0,0,0.15);
+      filter:brightness(1.25);
+    }
+    .sbt:not(.active):active { transform:translateY(0); }
+
+    [data-theme="light"] .status-btns { background:#f8fafc; }
+    [data-theme="light"] .sbt-cutting { background:#eff6ff; color:#2563eb; border-color:#bfdbfe; }
+    [data-theme="light"] .sbt-manual  { background:#f5f3ff; color:#7c3aed; border-color:#ddd6fe; }
+    [data-theme="light"] .sbt-cnc     { background:#fffbeb; color:#d97706; border-color:#fde68a; }
+    [data-theme="light"] .sbt-qc      { background:#ecfdf5; color:#059669; border-color:#a7f3d0; }
+    [data-theme="light"] .sbt-coating { background:#fff7ed; color:#c2410c; border-color:#fed7aa; }
+    [data-theme="light"] .sbt-finish  { background:#f0fdf4; color:#16a34a; border-color:#bbf7d0; }
+    [data-theme="light"] .sbt-cancel  { background:#fef2f2; color:#dc2626; border-color:#fecaca; }
 
     /* Empty / loading */
     .prod-empty { text-align:center; padding:60px 20px; color:var(--text-dim); grid-column:1/-1; }
@@ -168,8 +195,6 @@
     @keyframes rtSpin { to{transform:rotate(360deg)} }
     .rt-dot.syncing { background:var(--accent); animation:rtSpin 0.8s linear infinite; border-radius:0; width:10px; height:10px; clip-path:polygon(50% 0%,100% 100%,0% 100%); }
     .rt-dot.error   { background:#f87171; }
-    .rt-countdown   { font-variant-numeric:tabular-nums; }
-    .rt-countdown.soon { color:var(--accent-light); font-weight:600; }
 
     /* Modal */
     .modal-bg { display:none; position:fixed; inset:0; z-index:100; background:rgba(0,0,0,0.5); backdrop-filter:blur(4px); align-items:center; justify-content:center; padding:20px; }
@@ -357,7 +382,6 @@
         <div class="rt-bar">
           <div class="rt-dot" id="rt-dot"></div>
           <span id="rt-label">Live</span>
-          <span class="rt-countdown" id="rt-countdown"></span>
         </div>
         <span id="role-badge" class="role-badge"></span>
         <span class="username-text" id="nav-username"></span>
@@ -493,6 +517,59 @@
     </div>
   </div>
 
+  <!-- MODAL: CONFIRM CANCEL JOB -->
+  <div class="modal-bg" id="modal-confirm-cancel">
+    <div class="modal" style="max-width:380px">
+      <div style="text-align:center;padding:8px 0">
+        <div style="width:56px;height:56px;border-radius:50%;background:rgba(248,113,113,0.12);border:2px solid rgba(248,113,113,0.3);display:flex;align-items:center;justify-content:center;font-size:24px;color:#f87171;margin:0 auto 14px">
+          <i class="ti ti-ban"></i>
+        </div>
+        <p style="color:var(--text-secondary);font-size:14px">ยืนยันการยกเลิกงาน</p>
+        <div style="color:var(--text-primary);font-weight:700;font-size:16px;margin-top:6px" id="cancel-job-name"></div>
+        <p style="margin-top:8px;font-size:12px;color:var(--text-dim)">สถานะจะเปลี่ยนเป็น "ยกเลิก" และไม่นับใน progress</p>
+      </div>
+      <div class="modal-btns" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--accent-border-dim)">
+        <button class="btn-f btn-gray" id="btn-cancel-job-no"><i class="ti ti-x"></i>ยกเลิก</button>
+        <button class="btn-f btn-red" id="btn-cancel-job-ok" disabled style="opacity:0.5;cursor:not-allowed">
+          <i class="ti ti-ban"></i>ยืนยัน <span id="cancel-job-countdown" style="font-size:11px;font-weight:400">(3)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIRM BACK-STEP -->
+  <div class="modal-bg" id="modal-confirm-back">
+    <div class="modal" style="width:380px;max-width:95vw">
+      <div class="modal-title" style="padding:20px 24px 16px;border-bottom:1px solid var(--accent-border-dim)">
+        <i class="ti ti-arrow-back-up" style="color:#f97316;font-size:20px"></i>
+        <span style="font-size:15px;font-weight:700;color:var(--text-primary)">ย้อนขั้นตอนกลับ?</span>
+      </div>
+      <div class="modal-body" style="padding:20px 24px">
+        <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:18px">
+          <div style="width:44px;height:44px;border-radius:12px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.25);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="ti ti-alert-triangle" style="color:#f97316;font-size:22px"></i>
+          </div>
+          <div>
+            <div style="font-size:13px;color:var(--text-secondary);line-height:1.7">
+              กำลังจะย้อนกลับจาก<br>
+              <span id="confirm-from-step" style="font-weight:700;color:var(--text-primary)"></span>
+              <i class="ti ti-arrow-right" style="font-size:11px;margin:0 6px;color:var(--text-dim)"></i>
+              <span id="confirm-to-step" style="font-weight:700;color:var(--text-primary)"></span>
+            </div>
+            <div style="margin-top:10px;padding:10px 13px;border-radius:9px;background:rgba(249,115,22,0.07);border:1px solid rgba(249,115,22,0.2);font-size:12px;color:#f97316;display:flex;align-items:center;gap:7px">
+              <i class="ti ti-trash" style="font-size:14px;flex-shrink:0"></i>
+              ประวัติขั้นตอนที่เลยมาแล้วจะถูกลบออกจากระบบ
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:14px 24px;border-top:1px solid var(--accent-border-dim);display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn-f btn-gray" id="confirm-back-cancel"><i class="ti ti-x"></i>ยกเลิก</button>
+        <button class="btn-f" id="confirm-back-ok" style="background:rgba(249,115,22,0.15);color:#f97316;border:1px solid rgba(249,115,22,0.3)"><i class="ti ti-arrow-back-up"></i>ย้อนกลับ</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: QR CODE -->
   <div class="modal-bg" id="modal-qr">
     <div class="modal qr-modal">
@@ -602,6 +679,7 @@
         if (res.success) {
           allData    = res.data   || [];
           allHistory = resH.success ? (resH.data || []) : [];
+          lastSnapshot = makeSnapshot(allData, allHistory);
           updateSummary(); renderCards();
           setRtStatus('live');
           document.getElementById('last-updated').textContent = 'อัปเดต ' + new Date().toLocaleTimeString('th-TH');
@@ -686,13 +764,13 @@
 
         // Status quick buttons
         const sbts = CAN_EDIT ? `<div class="status-btns">
-          <span class="sbt sbt-pending ${curStep==='Cutting'?'active':''}"      onclick="quickStep('${d.id}','Cutting')"><i class="ti ti-cut" style="font-size:10px"></i>Cutting</span>
-          <span class="sbt sbt-process ${curStep==='Manual'?'active':''}"    onclick="quickStep('${d.id}','Manual')"><i class="ti ti-circle" style="font-size:10px"></i>Manual</span>
-          <span class="sbt sbt-pending ${curStep==='CNC'?'active':''}"      onclick="quickStep('${d.id}','CNC')"><i class="ti ti-cpu" style="font-size:10px"></i>CNC</span>
-          <span class="sbt sbt-done    ${curStep==='QC'?'active':''}"       onclick="quickStep('${d.id}','QC')"><i class="ti ti-check" style="font-size:10px"></i>QC</span>
-          <span class="sbt sbt-process ${curStep==='Coating'?'active':''}"   onclick="quickStep('${d.id}','Coating')"><i class="ti ti-code" style="font-size:10px"></i>Coating</span>
-          <span class="sbt sbt-done    ${curStep==='Finish'?'active':''}" onclick="quickStep('${d.id}','Finish')"><i class="ti ti-circle-check" style="font-size:10px"></i>Finish</span>
-          <span class="sbt sbt-cancel  ${d.status==='ยกเลิก'?'active':''}"  onclick="quickStatus('${d.id}','ยกเลิก')"><i class="ti ti-x" style="font-size:10px"></i>ยกเลิก</span>
+          <span class="sbt sbt-cutting ${curStep==='Cutting'?'active':''}" onclick="quickStep('${d.id}','Cutting')"><i class="ti ti-cut"></i>Cutting</span>
+          <span class="sbt sbt-manual  ${curStep==='Manual'?'active':''}"  onclick="quickStep('${d.id}','Manual')"><i class="ti ti-hand-finger"></i>Manual</span>
+          <span class="sbt sbt-cnc     ${curStep==='CNC'?'active':''}"     onclick="quickStep('${d.id}','CNC')"><i class="ti ti-cpu"></i>CNC</span>
+          <span class="sbt sbt-qc      ${curStep==='QC'?'active':''}"      onclick="quickStep('${d.id}','QC')"><i class="ti ti-checkup-list"></i>QC</span>
+          <span class="sbt sbt-coating ${curStep==='Coating'?'active':''}" onclick="quickStep('${d.id}','Coating')"><i class="ti ti-droplet"></i>Coating</span>
+          <span class="sbt sbt-finish  ${curStep==='Finish'?'active':''}"  onclick="quickStep('${d.id}','Finish')"><i class="ti ti-flag-check"></i>Finish</span>
+          <span class="sbt sbt-cancel  ${d.status==='ยกเลิก'?'active':''}" onclick="confirmCancelJob('${d.id}')"><i class="ti ti-ban"></i>ยกเลิก</span>
         </div>` : '';
 
         return `<div class="prod-card status-${stNum}" style="animation-delay:${idx*30}ms" onclick="handleCardClick(event,'${d.id}')">
@@ -800,10 +878,45 @@
     }
 
     // ── QUICK STEP (เปลี่ยนขั้นตอนการผลิต) ──────────────────────
+    // ── CONFIRM BACK-STEP ──────────────────────────────
+    function confirmBackStep(fromStep, toStep) {
+      return new Promise(resolve => {
+        document.getElementById('confirm-from-step').textContent = fromStep;
+        document.getElementById('confirm-to-step').textContent   = toStep;
+        const modal = document.getElementById('modal-confirm-back');
+        modal.classList.add('show');
+        const okBtn     = document.getElementById('confirm-back-ok');
+        const cancelBtn = document.getElementById('confirm-back-cancel');
+        function cleanup(result) {
+          modal.classList.remove('show');
+          okBtn.removeEventListener('click', onOk);
+          cancelBtn.removeEventListener('click', onCancel);
+          modal.removeEventListener('click', onBg);
+          resolve(result);
+        }
+        const onOk     = () => cleanup(true);
+        const onCancel = () => cleanup(false);
+        const onBg     = (e) => { if (e.target === modal) cleanup(false); };
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+        modal.addEventListener('click', onBg);
+      });
+    }
+
     async function quickStep(id, newStep) {
       const d = allData.find(x => x.id === id);
       if (!d || d.step === newStep) return;
       if (!hasPerm('edit')) { showToast('ไม่มีสิทธิ์แก้ไข','error'); return; }
+
+      // ตรวจสอบว่าถอยหลังไหม
+      const oldIdx = STEP_IDX[d.step] ?? -1;
+      const newIdx = STEP_IDX[newStep] ?? -1;
+      if (oldIdx !== -1 && newIdx < oldIdx) {
+        // ถอยหลัง → ต้องยืนยัน
+        const confirmed = await confirmBackStep(d.step, newStep);
+        if (!confirmed) return;
+      }
+
       const oldStep = d.step, oldStatus = d.status;
       const updatedBy = sessionStorage.getItem('displayName') || sessionStorage.getItem('username') || '';
       const nowStr = new Date().toLocaleDateString('th-TH', { year:'numeric', month:'short', day:'numeric', timeZone:'Asia/Bangkok' })
@@ -815,7 +928,9 @@
       if (newStep === 'Finish') d.status = 'สำเร็จ';
 
       // Optimistic update allHistory ทันที
-      const STEP_KEY = { 'Cutting':'s1','Manual':'s2','CNC':'s3','QC':'s4','Coating':'s5','Finish':'s6' };
+      const STEP_KEY   = { 'Cutting':'s1','Manual':'s2','CNC':'s3','QC':'s4','Coating':'s5','Finish':'s6' };
+      const STEP_KEYS  = ['s1','s2','s3','s4','s5','s6'];
+      const STEP_NAMES = ['Cutting','Manual','CNC','QC','Coating','Finish'];
       const sk = STEP_KEY[newStep];
       if (sk) {
         let row = allHistory.find(r => String(r.ref||'').trim() === String(d.ref||'').trim()
@@ -827,15 +942,21 @@
         row[sk]       = newStep;
         row[sk+'by']  = updatedBy;
         row[sk+'at']  = nowStr;
+
+        // ถอยหลัง → ล้าง step ที่อยู่หลัง newStep ใน allHistory ด้วย
+        const newSkIdx = STEP_KEYS.indexOf(sk);
+        for (let s = newSkIdx + 1; s < STEP_KEYS.length; s++) {
+          const k = STEP_KEYS[s];
+          row[k] = ''; row[k+'by'] = ''; row[k+'at'] = '';
+        }
       }
 
       updateSummary(); renderCards();
       try {
-        // ยิง API ทั้ง 3 พร้อมกันเลย ไม่รอทีละอัน
+        // ยิง 2 calls พร้อมกัน (ตัด updateStep ออก — logProduction clear cache แทนแล้ว)
         const [res] = await Promise.all([
-          apiCall({ action:'updateStep', id, step:newStep }),
-          apiCall({ action:'editData', id, title:d.title||'', ref:d.ref||'', qty:d.qty||'', priority:d.priority||'', status:d.status, startdate:d.startdate||'', duedate:d.duedate||'', remark:d.remark||'' }),
-          apiCall({ action:'logProduction', id, title:d.title||'', ref:d.ref||'', step:newStep, updatedBy })
+          apiCall({ action:'logProduction', id, title:d.title||'', ref:d.ref||'', step:newStep, updatedBy }),
+          apiCall({ action:'editData', id, title:d.title||'', ref:d.ref||'', qty:d.qty||'', priority:d.priority||'', status:d.status, startdate:d.startdate||'', duedate:d.duedate||'', remark:d.remark||'' })
         ]);
         if (res.success) {
           showToast(`✅ ${newStep}`, 'success', 1200);
@@ -852,6 +973,51 @@
     }
 
     // ── QUICK STATUS ─────────────────────────────────
+    // ── CONFIRM CANCEL JOB ────────────────────────────
+    let cancelJobTimer = null;
+    let cancelJobId    = null;
+
+    function confirmCancelJob(id) {
+      const d = allData.find(x => x.id === id); if (!d) return;
+      cancelJobId = id;
+      document.getElementById('cancel-job-name').textContent = d.title || d.ref || '—';
+
+      const btn = document.getElementById('btn-cancel-job-ok');
+      const cd  = document.getElementById('cancel-job-countdown');
+      btn.disabled = true; btn.style.opacity = '0.5'; btn.style.cursor = 'not-allowed';
+      cd.textContent = '(3)';
+
+      document.getElementById('modal-confirm-cancel').classList.add('show');
+
+      let count = 3;
+      if (cancelJobTimer) clearInterval(cancelJobTimer);
+      cancelJobTimer = setInterval(() => {
+        count--;
+        if (count <= 0) {
+          clearInterval(cancelJobTimer);
+          cd.textContent = '';
+          btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
+        } else { cd.textContent = `(${count})`; }
+      }, 1000);
+    }
+
+    function closeCancelModal() {
+      if (cancelJobTimer) clearInterval(cancelJobTimer);
+      document.getElementById('modal-confirm-cancel').classList.remove('show');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('btn-cancel-job-ok').addEventListener('click', () => {
+        if (!cancelJobId) return;
+        closeCancelModal();
+        quickStatus(cancelJobId, 'ยกเลิก');
+      });
+      document.getElementById('btn-cancel-job-no').addEventListener('click', closeCancelModal);
+      document.getElementById('modal-confirm-cancel').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('modal-confirm-cancel')) closeCancelModal();
+      });
+    });
+
     async function quickStatus(id, newStatus) {
       const d = allData.find(x => x.id === id); if(!d || d.status===newStatus) return;
       if (!hasPerm('edit')) { showToast('ไม่มีสิทธิ์แก้ไข','error'); return; }
@@ -1068,14 +1234,56 @@
     document.querySelectorAll('.modal-bg').forEach(bg => bg.addEventListener('click', e => { if(e.target===bg) bg.classList.remove('show'); }));
 
     // ── REALTIME ─────────────────────────────────────
-    const RT_INTERVAL = 60; let rtTimer=null, rtCountdown=RT_INTERVAL;
-    function startRealtime() { stopRealtime(); rtCountdown=RT_INTERVAL; updateCountdown(); rtTimer=setInterval(()=>{ rtCountdown--; if(rtCountdown<=0){rtCountdown=RT_INTERVAL;silentRefresh();} updateCountdown(); },1000); }
-    function stopRealtime()  { if(rtTimer){clearInterval(rtTimer);rtTimer=null;} }
-    function updateCountdown() { const el=document.getElementById('rt-countdown'); if(!el) return; el.textContent='('+rtCountdown+'s)'; el.className='rt-countdown'+(rtCountdown<=5?' soon':''); }
-    async function silentRefresh() { try{ const [res,resH]=await Promise.all([apiCall({action:'getData'}),apiCall({action:'getHistoryLog'})]); if(res.success){allData=res.data||[];allHistory=resH.success?(resH.data||[]):[];updateSummary();renderCards();setRtStatus('live');document.getElementById('last-updated').textContent='อัปเดต '+new Date().toLocaleTimeString('th-TH');}else setRtStatus('error'); }catch(e){setRtStatus('error');} }
+    const RT_INTERVAL = 15000;
+    let rtTimer = null;
+    let lastSnapshot = '';
+
+    function makeSnapshot(data, history) {
+      // เช็คเฉพาะ step, status ของแต่ละงาน และ log count
+      return JSON.stringify(data.map(d => ({ id:d.id, step:d.step, status:d.status })))
+           + '|' + JSON.stringify(history.map(h => ({ ref:h.ref, s1at:h.s1at, s2at:h.s2at, s3at:h.s3at, s4at:h.s4at, s5at:h.s5at, s6at:h.s6at })));
+    }
+
+    function flashUpdate() {
+      const grid = document.getElementById('prod-grid');
+      if (!grid) return;
+      grid.style.transition = 'background 0.3s ease';
+      grid.style.background = 'rgba(34,197,94,0.06)';
+      setTimeout(() => { grid.style.background = ''; setTimeout(() => { grid.style.transition = ''; }, 300); }, 800);
+    }
+
+    function startRealtime() {
+      stopRealtime();
+      rtTimer = setInterval(silentRefresh, RT_INTERVAL);
+    }
+    function stopRealtime() { if (rtTimer) { clearInterval(rtTimer); rtTimer = null; } }
+
+    async function silentRefresh() {
+      try {
+        setRtStatus('syncing');
+        const [res, resH] = await Promise.all([
+          apiCall({ action:'getData' }),
+          apiCall({ action:'getHistoryLog' })
+        ]);
+        if (res.success) {
+          const newSnap = makeSnapshot(res.data || [], resH.success ? (resH.data || []) : []);
+          if (newSnap !== lastSnapshot) {
+            lastSnapshot = newSnap;
+            allData    = res.data || [];
+            allHistory = resH.success ? (resH.data || []) : [];
+            updateSummary();
+            renderCards();
+            flashUpdate();
+            document.getElementById('last-updated').textContent = 'อัปเดต ' + new Date().toLocaleTimeString('th-TH');
+          }
+          setRtStatus('live');
+        } else { setRtStatus('error'); }
+      } catch(e) { setRtStatus('error'); }
+    }
+
     function setRtStatus(state) {
-      const dot=document.getElementById('rt-dot'); if(dot) dot.className='rt-dot'+(state==='syncing'?' syncing':state==='error'?' error':state==='paused'?' paused':'');
-      const lbl=document.getElementById('rt-label'); if(lbl) lbl.textContent={live:'Live',syncing:'กำลังซิงค์...',error:'เชื่อมต่อไม่ได้',paused:'หยุดชั่วคราว'}[state]||state;
+      const dot = document.getElementById('rt-dot'); if (dot) dot.className = 'rt-dot' + (state==='syncing' ? ' syncing' : state==='error' ? ' error' : '');
+      const lbl = document.getElementById('rt-label'); if (lbl) lbl.textContent = { live:'Live', syncing:'กำลังเช็ค...', error:'เชื่อมต่อไม่ได้' }[state] || state;
     }
 
     loadData();

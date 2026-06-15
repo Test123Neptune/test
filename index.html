@@ -292,7 +292,7 @@
         <label>Username</label>
         <div class="input-wrap">
           <i class="ti ti-user ico"></i>
-          <input type="text" id="username" placeholder="กรอกชื่อผู้ใช้งาน" autocomplete="off" name="username-x" autocomplete="off" />
+          <input type="text" id="username" placeholder="กรอกชื่อผู้ใช้งาน" autocomplete="off" name="username" readonly onfocus="this.removeAttribute('readonly')" />
         </div>
       </div>
 
@@ -300,7 +300,7 @@
         <label>Password</label>
         <div class="input-wrap">
           <i class="ti ti-lock ico"></i>
-          <input type="password" id="password" placeholder="กรอกรหัสผ่าน" autocomplete="new-password" name="password-x" autocomplete="new-password" />
+          <input type="password" id="password" placeholder="กรอกรหัสผ่าน" autocomplete="new-password" name="password-x" readonly onfocus="this.removeAttribute('readonly')" />
           <button class="eye-btn" id="eye-btn" type="button" onclick="togglePw()" title="แสดง/ซ่อนรหัสผ่าน">
             <i class="ti ti-eye" id="eye-icon"></i>
           </button>
@@ -400,15 +400,17 @@
     }
 
     // ── API CALL ──────────────────────────────────────────────────────────────
-    const API_URL = 'https://script.google.com/macros/s/AKfycbwHKKEiuTbGLUMM8sqX-DDyv8383Sz25XEKgQWOLLJKpu-iuoco-6CEAuh7WrurN-2r/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzCkStaLvhTB7Agr4e_A0C4o6Y-jxvFb1O7L4KMq6lxByX1OVKJmyoHt0IKe8p_XSJO/exec';
+
+    let loginAttempt = 0;
 
     async function loginHandler() {
       const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value.trim();
-      const btn = document.getElementById('btn');
-      const errEl = document.getElementById('err');
-      const errText = document.getElementById('err-text');
-      const card = document.getElementById('card');
+      const password = document.getElementById('password').value; // ไม่ trim — password อาจมี space จริง
+      const btn      = document.getElementById('btn');
+      const errEl    = document.getElementById('err');
+      const errText  = document.getElementById('err-text');
+      const card     = document.getElementById('card');
 
       if (!username || !password) {
         errText.textContent = 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน';
@@ -420,58 +422,103 @@
 
       btn.classList.add('loading');
       errEl.style.display = 'none';
+      loginAttempt++;
 
-      const callbackName = 'loginCb_' + Date.now();
-      const script = document.createElement('script');
+      doLogin(username, password, loginAttempt, 1);
+    }
 
-      const timeout = setTimeout(() => {
+    function doLogin(username, password, attempt, tryNum) {
+      const btn     = document.getElementById('btn');
+      const errEl   = document.getElementById('err');
+      const errText = document.getElementById('err-text');
+      const card    = document.getElementById('card');
+      const MAX_TRY = 3;
+
+      // ลอง fetch ก่อน (ไม่ติด JSONP block)
+      // ถ้า fetch ไม่ได้ (network error) → fallback JSONP
+      const url = `${API_URL}?action=login&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+
+      let settled = false;
+
+      function onSuccess(data) {
+        if (settled || attempt !== loginAttempt) return;
+        settled = true;
         btn.classList.remove('loading');
-        errText.textContent = 'ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่';
-        errEl.style.display = 'flex';
-        card.classList.add('shake');
-        setTimeout(() => card.classList.remove('shake'), 500);
-        delete window[callbackName];
-        try { document.head.removeChild(script); } catch(e) {}
-      }, 12000);
-
-      window[callbackName] = function(data) {
-        clearTimeout(timeout);
-        try { document.head.removeChild(script); } catch(e) {}
-        delete window[callbackName];
-        btn.classList.remove('loading');
-
         if (data.success) {
           sessionStorage.setItem('token',       data.token);
           sessionStorage.setItem('username',    data.username);
           sessionStorage.setItem('role',        data.role);
           sessionStorage.setItem('permissions', data.permissions || 'view');
           sessionStorage.setItem('displayName', data.displayName || data.username);
-
-          // Success animation
-          document.getElementById('success-name').textContent =
-            'ยินดีต้อนรับ ' + (data.displayName || data.username);
+          document.getElementById('success-name').textContent = 'ยินดีต้อนรับ ' + (data.displayName || data.username);
           document.getElementById('success-overlay').classList.add('show');
-
           const btnEl = document.getElementById('btn');
           spawnParticles(btnEl.getBoundingClientRect().left, btnEl.getBoundingClientRect().top);
-
-          setTimeout(() => { window.location.replace('dashboard1.html'); }, 1500);
+          setTimeout(() => window.location.replace('dashboard1.html'), 1500);
         } else {
           errText.textContent = data.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
           errEl.style.display = 'flex';
           card.classList.add('shake');
           setTimeout(() => card.classList.remove('shake'), 500);
         }
-      };
+      }
 
+      function onError(isFinal) {
+        if (settled || attempt !== loginAttempt) return;
+        if (!isFinal && tryNum < MAX_TRY) {
+          settled = true;
+          errText.textContent = `เชื่อมต่อไม่ได้ กำลังลองใหม่... (${tryNum}/${MAX_TRY})`;
+          errEl.style.display = 'flex';
+          setTimeout(() => doLogin(username, password, attempt, tryNum + 1), 1500);
+        } else if (isFinal) {
+          settled = true;
+          btn.classList.remove('loading');
+          errText.textContent = 'เชื่อมต่อไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่';
+          errEl.style.display = 'flex';
+          card.classList.add('shake');
+          setTimeout(() => card.classList.remove('shake'), 500);
+        }
+      }
+
+      // ── ลอง fetch ก่อน (timeout 18 วิ) ──
+      const fetchCtrl = new AbortController();
+      const fetchTimer = setTimeout(() => fetchCtrl.abort(), 18000);
+
+      fetch(url, { signal: fetchCtrl.signal })
+        .then(r => r.json())
+        .then(data => {
+          clearTimeout(fetchTimer);
+          onSuccess(data);
+        })
+        .catch(() => {
+          clearTimeout(fetchTimer);
+          if (settled || attempt !== loginAttempt) return;
+          // fetch ล้มเหลว → fallback JSONP
+          doLoginJSONP(url, attempt, onSuccess, () => onError(tryNum >= MAX_TRY));
+        });
+    }
+
+    function doLoginJSONP(baseUrl, attempt, onSuccess, onFail) {
+      const cbName = 'loginCb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+      const script = document.createElement('script');
+      const timer  = setTimeout(() => {
+        delete window[cbName];
+        try { document.head.removeChild(script); } catch(e) {}
+        onFail();
+      }, 20000);
+      window[cbName] = function(data) {
+        clearTimeout(timer);
+        delete window[cbName];
+        try { document.head.removeChild(script); } catch(e) {}
+        if (attempt !== loginAttempt) return;
+        onSuccess(data);
+      };
       script.onerror = function() {
-        clearTimeout(timeout);
-        btn.classList.remove('loading');
-        errText.textContent = 'เกิดข้อผิดพลาด กรุณาลองใหม่';
-        errEl.style.display = 'flex';
+        clearTimeout(timer);
+        delete window[cbName];
+        onFail();
       };
-
-      script.src = `${API_URL}?action=login&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&callback=${callbackName}`;
+      script.src = baseUrl + `&callback=${cbName}`;
       document.head.appendChild(script);
     }
 

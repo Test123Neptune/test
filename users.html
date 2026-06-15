@@ -217,16 +217,20 @@
 
   <!-- Confirm Delete -->
   <div class="modal-bg" id="modal-del-user">
-    <div class="modal" style="max-width:360px;text-align:center">
-      <div style="width:56px;height:56px;border-radius:50%;background:rgba(239,68,68,0.1);border:2px solid rgba(239,68,68,0.3);display:flex;align-items:center;justify-content:center;font-size:24px;color:#f87171;margin:0 auto 16px">
-        <i class="ti ti-user-off"></i>
+    <div class="modal" style="max-width:380px">
+      <div style="text-align:center;padding:8px 0">
+        <div style="width:56px;height:56px;border-radius:50%;background:rgba(239,68,68,0.12);border:2px solid rgba(239,68,68,0.3);display:flex;align-items:center;justify-content:center;font-size:24px;color:#f87171;margin:0 auto 14px">
+          <i class="ti ti-trash"></i>
+        </div>
+        <p style="color:var(--text-secondary);font-size:14px">คุณต้องการลบผู้ใช้</p>
+        <div style="color:var(--text-primary);font-weight:700;font-size:16px;margin-top:6px" id="del-user-name"></div>
+        <p style="margin-top:8px;font-size:12px;color:var(--text-dim)">การกระทำนี้ไม่สามารถย้อนกลับได้</p>
       </div>
-      <p style="color:var(--text-secondary);font-size:14px">ยืนยันการลบผู้ใช้</p>
-      <div style="color:var(--text-primary);font-weight:600;font-size:15px;margin:6px 0" id="del-user-name"></div>
-      <p style="font-size:12px;color:var(--text-dim)">การกระทำนี้ไม่สามารถย้อนกลับได้</p>
-      <div class="modal-btns" style="margin-top:24px;justify-content:center">
+      <div class="modal-btns" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--accent-border-dim)">
         <button class="btn-f btn-gray" onclick="closeModal('modal-del-user')"><i class="ti ti-x"></i>ยกเลิก</button>
-        <button class="btn-f btn-red" onclick="confirmDelUser()"><i class="ti ti-trash"></i>ลบ</button>
+        <button class="btn-f btn-red" id="btn-confirm-del-user" onclick="confirmDelUser()" disabled style="opacity:0.5;cursor:not-allowed">
+          <i class="ti ti-trash"></i>ลบ <span id="del-user-countdown" style="font-size:11px;font-weight:400">(3)</span>
+        </button>
       </div>
     </div>
   </div>
@@ -467,29 +471,68 @@
       }
     }
 
+    let delUserCountdownTimer = null;
     function askDel(username) {
       deleteUsername = username;
       document.getElementById('del-user-name').textContent = username;
+
+      const btn = document.getElementById('btn-confirm-del-user');
+      const cd  = document.getElementById('del-user-countdown');
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+      btn.style.cursor  = 'not-allowed';
+      cd.textContent = '(3)';
+
       openModal('modal-del-user');
+
+      let count = 3;
+      if (delUserCountdownTimer) clearInterval(delUserCountdownTimer);
+      delUserCountdownTimer = setInterval(() => {
+        count--;
+        if (count <= 0) {
+          clearInterval(delUserCountdownTimer);
+          cd.textContent = '';
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          btn.style.cursor  = 'pointer';
+        } else {
+          cd.textContent = `(${count})`;
+        }
+      }, 1000);
     }
 
     async function confirmDelUser() {
+      const btn = document.getElementById('btn-confirm-del-user');
+      btn.disabled = true;
+      btn.innerHTML = '<span style="width:13px;height:13px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;vertical-align:middle"></span> กำลังลบ...';
       try {
         const res = await apiCall({ action:'deleteUser', username: deleteUsername });
         if (res.success) {
+          btn.innerHTML = '<i class="ti ti-trash"></i>ลบ';
           closeModal('modal-del-user');
           showToast('ลบผู้ใช้สำเร็จ','success');
           await new Promise(r => setTimeout(r, 1500)); await loadUsers();
         } else {
           showToast(res.message || 'ลบไม่สำเร็จ','error');
+          btn.disabled = false;
+          btn.innerHTML = '<i class="ti ti-trash"></i>ลบ';
         }
-      } catch(e) { showToast('ไม่สามารถเชื่อมต่อได้','error'); }
+      } catch(e) {
+        showToast('ไม่สามารถเชื่อมต่อได้','error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ti ti-trash"></i>ลบ';
+      }
     }
 
     function openModal(id)  { document.getElementById(id).classList.add('show'); }
     function closeModal(id) { document.getElementById(id).classList.remove('show'); }
     document.querySelectorAll('.modal-bg').forEach(bg => {
-      bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('show'); });
+      bg.addEventListener('click', e => {
+        if (e.target === bg) {
+          bg.classList.remove('show');
+          if (bg.id === 'modal-del-user' && delUserCountdownTimer) clearInterval(delUserCountdownTimer);
+        }
+      });
     });
 
     Promise.all([loadUsers(), loadRoles()]);
