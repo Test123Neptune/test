@@ -13,7 +13,7 @@
 })();
 
 // ── API ────────────────────────────────────────────────
-const API_URL = 'https://script.google.com/macros/s/AKfycbzsDjDFWGyXOQdXhKR410WIiJ7YEn1JUwUsFrV8zTa0vCJbJiBOry9KukFfMjj_Wpuc/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxgAZQE4ouVhBLp-f6SXtoKqzkJix0wSCGNIuLAdtLu_IrNMKghj8gUOchgb8MlPPvV/exec';
 
 function apiCall(params, timeoutMs = 12000) {
   return new Promise((resolve, reject) => {
