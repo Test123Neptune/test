@@ -655,27 +655,40 @@
     // คืนค่า {day, month(1-12), year(ค.ศ.), hour, minute} หรือ null ถ้าแกะไม่ได้
     function parseThaiDatetime(raw) {
       if (!raw) return null;
-      const s = String(raw).replace('น.', '').trim();
+
+      // ✅ กันสตริงเพี้ยน: ตัดอักขระที่มองไม่เห็น (zero-width, RTL/LTR mark, BOM, NBSP)
+      // ที่อาจติดมาจากการ copy/paste ในชีต ซึ่งทำให้ regex ที่ anchor ด้วย ^ จับไม่ติด
+      // แล้วหลุดไปตกที่ fallback new Date(s) ซึ่งเดาแบบอเมริกัน (M/D) ทำให้วันเดือนสลับ
+      let s = String(raw)
+        .replace(/[\u200B-\u200F\u202A-\u202E\uFEFF]/g, '')
+        .replace(/\u00A0/g, ' ')
+        .replace('น.', '')
+        .trim();
 
       // รูปแบบไทย/สเปรดชีต: D/M/YYYY หรือ DD-MM-YYYY [HH:mm[:ss]]  (ลำดับ วัน/เดือน/ปี เสมอ)
-      let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+      // ตัด ^ ออก เผื่อมีอักขระแปลกปลอมหลงเหลืออยู่หน้าสุดที่ replace ข้างต้นดักไม่หมด
+      let m = s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
       if (m) {
-        const day = parseInt(m[1], 10);
-        const month = parseInt(m[2], 10);
+        let day = parseInt(m[1], 10);
+        let month = parseInt(m[2], 10);
         let year = parseInt(m[3], 10);
         if (year > 2400) year -= 543; // เก็บเป็น พ.ศ. อยู่แล้ว → แปลงเป็น ค.ศ.
+        // ป้องกันชั้นสุดท้าย: ถ้าค่าที่ตำแหน่ง "เดือน" ดันเกิน 12 (เขียนสลับกันมาโดยไม่ตั้งใจ)
+        // ให้สลับ วัน/เดือน กลับ แทนที่จะปล่อยให้ค่าที่ผิดหลักผ่านไปทั้งอย่างนั้น
+        if (month > 12 && day <= 12) { const t = day; day = month; month = t; }
         return { day, month, year, hour: m[4] ? parseInt(m[4], 10) : null, minute: m[5] ? parseInt(m[5], 10) : null };
       }
 
       // รูปแบบ ISO ไม่กำกวม: YYYY-MM-DD[THH:mm...]
-      m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2}))?/);
+      m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2}))?/);
       if (m) {
         let year = parseInt(m[1], 10);
         if (year > 2400) year -= 543;
         return { day: parseInt(m[3], 10), month: parseInt(m[2], 10), year, hour: m[4] ? parseInt(m[4], 10) : null, minute: m[5] ? parseInt(m[5], 10) : null };
       }
 
-      // fallback สุดท้าย: ให้ Date เดา แล้วกันปี พ.ศ. ซ้อนไว้
+      // fallback สุดท้าย: ให้ Date เดา แล้วกันปี พ.ศ. ซ้อนไว้ (ใช้เฉพาะกรณีที่ไม่ใช่ D/M/Y แบบ slash แล้ว
+      // เช่น สตริงจาก Date.toString() ของ JS "Mon Jul 06 2026 10:05:18 GMT+0700 ...")
       const d = new Date(s);
       if (isNaN(d)) return null;
       let year = d.getFullYear();
@@ -698,6 +711,49 @@
       const hh = String(p.hour).padStart(2, '0');
       const min = String(p.minute).padStart(2, '0');
       return `${datePart} ${hh}:${min}`;
+    }
+
+    // ── FIND + MERGE HISTORY ROW ──────────────────────
+    // แก้บั๊ก: ถ้าใบงานเดียวกัน (ref เดียวกัน) มีหลายแถวใน history
+    // (เช่น log ซ้ำจากการย้อนขั้นตอนแล้วทำใหม่) เดิมใช้ .find() ซึ่งได้แถว "แรก" ที่เจอเท่านั้น
+    // ทำให้บางครั้งได้ข้อมูลเก่า/ผิดคนมาแสดง ไม่ตรงกับข้อมูลจริงล่าสุด
+    // ตอนนี้เปลี่ยนเป็นรวมทุกแถวที่ ref ตรงกัน แล้วเลือกค่าที่ "เวลาล่าสุด" ของแต่ละขั้นตอนแยกกัน
+    function historyTimeValue(atStr) {
+      const p = parseThaiDatetime(atStr);
+      if (!p) return -Infinity;
+      return new Date(p.year, p.month - 1, p.day, p.hour || 0, p.minute || 0, 0).getTime();
+    }
+
+    function findHistoryRow(historyData, d) {
+      if (!historyData || !historyData.length) return null;
+      let matches;
+      if (d.ref) {
+        matches = historyData.filter(r => String(r.ref || '').trim() === String(d.ref).trim());
+      } else if (d.title) {
+        matches = historyData.filter(r => String(r.title || '').trim() === String(d.title).trim());
+      } else {
+        matches = [];
+      }
+      if (!matches.length) return null;
+      if (matches.length === 1) return matches[0];
+
+      // มีหลายแถวซ้ำ → รวมเป็นแถวเดียว โดยเลือกค่าล่าสุดของแต่ละขั้นตอน
+      const STEP_KEYS = ['s1','s2','s3','s4','s5','s6'];
+      const merged = { ref: matches[0].ref, title: matches[0].title };
+      STEP_KEYS.forEach(k => {
+        let bestTime = -Infinity, bestRow = null;
+        matches.forEach(r => {
+          if (!r[k]) return;
+          const t = historyTimeValue(r[k + 'at']);
+          if (!bestRow || t > bestTime) { bestTime = t; bestRow = r; }
+        });
+        if (bestRow) {
+          merged[k]        = bestRow[k];
+          merged[k + 'by'] = bestRow[k + 'by'];
+          merged[k + 'at'] = bestRow[k + 'at'];
+        }
+      });
+      return merged;
     }
 
     // ── LOAD ─────────────────────────────────────────
@@ -871,12 +927,9 @@
           const el = document.getElementById('log-' + d.id);
           if (!el) return;
           // ✅ แก้ไข: ใช้ ref เป็นหลักเสมอ (unique key) กัน title ซ้ำข้ามใบงานแล้ว match ผิด
-          let row = null;
-          if (d.ref) {
-            row = res.data.find(r => String(r.ref || '').trim() === String(d.ref).trim());
-          } else if (d.title) {
-            row = res.data.find(r => String(r.title || '').trim() === String(d.title).trim());
-          }
+          // ✅ แก้ไข (2): ถ้ามีหลายแถวซ้ำ ref เดียวกัน ให้รวมและเลือกค่าล่าสุดของแต่ละขั้นตอน
+          // แทนที่จะหยิบแถวแรกที่เจอ ซึ่งอาจเป็นข้อมูลเก่า/ผิดคน
+          const row = findHistoryRow(res.data, d);
           if (row) {
             const items = HIST_STEPS.filter(s => row[s.key]).map(s => `
               <div class="step-log-item">
@@ -972,11 +1025,22 @@
         // ✅ แก้ไข: เดิม match ด้วย ref OR title ถ้ามี 2 ใบงาน title ซ้ำกัน
         // (เช่น ref 222 กับ 444 ทั้งคู่ title="111") จะดันไปเขียนทับ history ของใบงานอื่นผิดตัว
         // ตอนนี้ match ด้วย ref เป็นหลักเสมอ fallback ไป title ก็ต่อเมื่อไม่มี ref เท่านั้น
-        let row = null;
+        // ✅ แก้ไข: ถ้ามีหลายแถวซ้ำ ref เดียวกันอยู่แล้วใน allHistory ให้เขียนลงแถว "ล่าสุด"
+        // (แถวที่มีการอัปเดตขั้นตอนล่าสุด) เสมอ กันเขียนทับแถวเก่าแล้วสร้างข้อมูลสวนทางเวลากัน
+        let candidates = [];
         if (d.ref) {
-          row = allHistory.find(r => String(r.ref || '').trim() === String(d.ref).trim());
+          candidates = allHistory.filter(r => String(r.ref || '').trim() === String(d.ref).trim());
         } else if (d.title) {
-          row = allHistory.find(r => String(r.title || '').trim() === String(d.title).trim());
+          candidates = allHistory.filter(r => String(r.title || '').trim() === String(d.title).trim());
+        }
+        let row = null;
+        if (candidates.length) {
+          row = candidates.reduce((latest, r) => {
+            const STEP_KEYS = ['s1','s2','s3','s4','s5','s6'];
+            const rTime = Math.max(...STEP_KEYS.map(k => r[k] ? historyTimeValue(r[k+'at']) : -Infinity));
+            const lTime = Math.max(...STEP_KEYS.map(k => latest[k] ? historyTimeValue(latest[k+'at']) : -Infinity));
+            return rTime > lTime ? r : latest;
+          }, candidates[0]);
         }
         if (!row) {
           row = { ref:d.ref||'', title:d.title||'' };
@@ -1152,12 +1216,8 @@
           // (เช่น ref 222 กับ 444 ทั้งคู่ title = "111") อาจไป match ผิดใบงานได้
           // ตอนนี้บังคับให้ใช้ ref เป็นหลักเสมอ (เป็น unique key จริง)
           // และ fallback ไปใช้ title ก็ต่อเมื่อใบงานนี้ไม่มี ref เท่านั้น
-          let row = null;
-          if (d.ref) {
-            row = res.data.find(r => String(r.ref || '').trim() === String(d.ref).trim());
-          } else if (d.title) {
-            row = res.data.find(r => String(r.title || '').trim() === String(d.title).trim());
-          }
+          // ✅ แก้ไข: รวมแถวซ้ำ ref เดียวกัน เลือกค่าล่าสุดของแต่ละขั้นตอน กันข้อมูลเก่า/ผิดคนหลุดมาแสดง
+          const row = findHistoryRow(res.data, d);
           if (row) {
             // แปลง s1..s6 เป็น log items เฉพาะที่มีค่า
             const items = HIST_STEPS
