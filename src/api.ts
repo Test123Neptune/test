@@ -1,4 +1,4 @@
-export const API_URL = "https://script.google.com/macros/s/AKfycbxgAZQE4ouVhBLp-f6SXtoKqzkJix0wSCGNIuLAdtLu_IrNMKghj8gUOchgb8MlPPvV/exec";
+export const API_URL = "https://script.google.com/macros/s/AKfycbyab5HU8Aet1iqcgCDynQ_ChQ5biUEp3OoRD1HjpZFSdFKmH2pevm5J6sNnc2yheMF0/exec";
 
 export interface LoginResponse {
   success: boolean;
